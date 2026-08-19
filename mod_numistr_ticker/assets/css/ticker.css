@@ -1,0 +1,393 @@
+/**
+ * NumisTR Ticker Module - Fade Transition Styles (Flexible)
+ * @package     mod_numistr_ticker
+ * @version     2.1.0 (Supports both single-line and multi-line modes)
+ */
+
+/* ===== Container ===== */
+.numistr-ticker-fade {
+    width: 100%;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    border-bottom: 1px solid #dee2e6;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Single-line mode padding */
+.numistr-ticker-fade.single-line {
+    padding: 12px 20px;
+    min-height: 50px;
+}
+
+/* Multi-line mode padding */
+.numistr-ticker-fade.multi-line {
+    padding: 20px;
+    min-height: 100px;
+    flex-direction: column;
+}
+
+/* ===== Icon ===== */
+.ticker-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8b5a3c;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+/* ===== Content Area ===== */
+.ticker-content-fade {
+    position: relative;
+    overflow: hidden;
+    flex: 1;
+}
+
+/* Single-line content */
+.single-line .ticker-content-fade {
+    min-height: 28px;
+    text-align: center;
+}
+
+/* Multi-line content */
+.multi-line .ticker-content-fade {
+    min-height: 80px;
+    text-align: center;
+}
+
+/* ===== Ticker Item (Fade) ===== */
+.ticker-item-fade {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s ease-in-out, visibility 0.6s ease-in-out;
+}
+
+/* Single-line item */
+.single-line .ticker-item-fade {
+    line-height: 1.6;
+    padding: 5px 0;
+}
+
+/* Multi-line item */
+.multi-line .ticker-item-fade {
+    padding: 15px;
+}
+
+/* Active item visible */
+.ticker-item-fade.active {
+    opacity: 1;
+    visibility: visible;
+    position: relative;
+}
+
+/* ===== Region ===== */
+
+/* Single-line region (inline) */
+.single-line .ticker-region {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6c757d;
+    display: inline;
+}
+
+.single-line .ticker-separator {
+    font-size: 16px;
+    font-weight: 700;
+    color: #8b5a3c;
+    display: inline;
+    margin: 0 5px;
+}
+
+/* Multi-line region (block) */
+.multi-line .ticker-region {
+    font-size: 18px;
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 8px;
+}
+
+/* ===== Title ===== */
+
+/* Single-line title (inline) */
+.single-line .ticker-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #8b5a3c;
+    display: inline;
+    margin-left: 3px;
+}
+
+/* Multi-line title (block) */
+.multi-line .ticker-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #8b5a3c;
+    margin-bottom: 12px;
+    line-height: 1.3;
+    display: block;
+}
+
+/* ===== Description ===== */
+
+/* Single-line description (inline) */
+.single-line .ticker-description {
+    font-size: 15px;
+    color: #333;
+    display: inline;
+    margin-left: 5px;
+}
+
+/* Multi-line description (block) */
+.multi-line .ticker-description {
+    font-size: 15px;
+    color: #333;
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 0 auto;
+    display: block;
+}
+
+/* ===== Navigation Controls ===== */
+.ticker-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    flex-shrink: 0;
+}
+
+.ticker-prev,
+.ticker-next {
+    background: transparent;
+    border: 1px solid #8b5a3c;
+    color: #8b5a3c;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.ticker-prev:hover,
+.ticker-next:hover {
+    background: #8b5a3c;
+    color: white;
+}
+
+.ticker-prev:focus-visible,
+.ticker-next:focus-visible {
+    outline: 2px solid #8b5a3c;
+    outline-offset: 2px;
+}
+
+/* ===== Dot Indicators ===== */
+.ticker-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ticker-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #dee2e6;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.3s ease;
+}
+
+.ticker-dot:hover {
+    background: #adb5bd;
+}
+
+.ticker-dot.active {
+    background: #8b5a3c;
+    width: 12px;
+    height: 12px;
+}
+
+.ticker-dot:focus-visible {
+    outline: 2px solid #8b5a3c;
+    outline-offset: 2px;
+}
+
+/* ===== Responsive Design ===== */
+
+/* Tablet (480px - 768px) */
+@media (max-width: 768px) {
+    .numistr-ticker-fade.single-line {
+        padding: 10px 15px;
+    }
+    
+    .numistr-ticker-fade.multi-line {
+        padding: 15px;
+    }
+    
+    .single-line .ticker-title {
+        font-size: 15px;
+    }
+    
+    .single-line .ticker-description {
+        font-size: 14px;
+    }
+    
+    .multi-line .ticker-title {
+        font-size: 18px;
+    }
+    
+    .multi-line .ticker-description {
+        font-size: 14px;
+    }
+    
+    .ticker-navigation {
+        gap: 10px;
+    }
+    
+    .ticker-prev,
+    .ticker-next {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+/* Mobile (<480px) */
+@media (max-width: 480px) {
+    .numistr-ticker-fade.single-line {
+        padding: 8px 10px;
+    }
+    
+    .numistr-ticker-fade.multi-line {
+        padding: 12px;
+    }
+    
+    .single-line .ticker-title {
+        font-size: 14px;
+    }
+    
+    .single-line .ticker-description {
+        font-size: 13px;
+    }
+    
+    .multi-line .ticker-title {
+        font-size: 16px;
+    }
+    
+    .multi-line .ticker-description {
+        font-size: 13px;
+    }
+    
+    .ticker-icon {
+        font-size: 20px;
+    }
+    
+    .ticker-navigation {
+        gap: 8px;
+    }
+    
+    .ticker-prev,
+    .ticker-next {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .ticker-dots {
+        gap: 6px;
+    }
+}
+
+/* ===== Dark Mode Support ===== */
+@media (prefers-color-scheme: dark) {
+    .numistr-ticker-fade {
+        background-color: #212529;
+        border-top-color: #495057;
+        border-bottom-color: #495057;
+    }
+    
+    .ticker-icon {
+        color: #d4a574;
+    }
+    
+    .ticker-title {
+        color: #d4a574 !important;
+    }
+    
+    .ticker-description {
+        color: #dee2e6 !important;
+    }
+    
+    .ticker-prev,
+    .ticker-next {
+        border-color: #d4a574;
+        color: #d4a574;
+    }
+    
+    .ticker-prev:hover,
+    .ticker-next:hover {
+        background: #d4a574;
+        color: #212529;
+    }
+    
+    .ticker-dot {
+        background: #495057;
+    }
+    
+    .ticker-dot:hover {
+        background: #6c757d;
+    }
+    
+    .ticker-dot.active {
+        background: #d4a574;
+    }
+}
+
+/* ===== Accessibility: Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+    .ticker-item-fade {
+        transition: none;
+    }
+    
+    .ticker-prev,
+    .ticker-next,
+    .ticker-dot {
+        transition: none;
+    }
+}
+
+/* ===== Print Styles ===== */
+@media print {
+    .numistr-ticker-fade {
+        border: none;
+        background: transparent;
+        padding: 0;
+    }
+    
+    .ticker-item-fade {
+        position: static;
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .ticker-item-fade:not(:first-child) {
+        display: none;
+    }
+    
+    .ticker-navigation {
+        display: none;
+    }
+    
+    .ticker-icon {
+        display: none;
+    }
+}

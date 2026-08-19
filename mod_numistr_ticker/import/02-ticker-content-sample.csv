@@ -1,0 +1,62 @@
+title,alias,catid,state,access,language,introtext,custom_field_ancient_name,custom_field_modern_name,custom_field_region_code,created_by
+"Sardeis","sardeis",CATEGORY_ID,1,1,"*","Lidya Krallığı'nın başkenti ve önemli bir darphane şehri. Altın ve elektron sikkelerin basıldığı önemli bir merkez.","Sardeis","Sart, Manisa, Türkiye","lydia-coins",AUTHOR_ID
+"Ephesos","ephesos",CATEGORY_ID,1,1,"*","İyonya'nın en büyük şehirlerinden biri. Artemis Tapınağı ile ünlü antik darphane merkezi.","Ephesos","Selçuk, İzmir, Türkiye","ionia-coins",AUTHOR_ID
+"Pergamon","pergamon",CATEGORY_ID,1,1,"*","Hellenistik dönemin en önemli şehirlerinden biri. Attalid Krallığı'nın başkenti ve darphane merkezi.","Pergamon","Bergama, İzmir, Türkiye","mysia-coins",AUTHOR_ID
+"Miletos","miletos",CATEGORY_ID,1,1,"*","İyonya'nın önemli kolonizasyon merkezi. Zengin ticaret şehri ve aktif darphane.","Miletos","Balat, Aydın, Türkiye","ionia-coins",AUTHOR_ID
+"Smyrna","smyrna",CATEGORY_ID,1,1,"*","Ege kıyısının önemli liman şehri. Çeşitli dönemlerde sikke basan önemli darphane.","Smyrna","İzmir, Türkiye","ionia-coins",AUTHOR_ID
+"Alexandria Troas","alexandria-troas",CATEGORY_ID,1,1,"*","Troas bölgesinin en önemli Roma dönemi şehri. Özellikle imparatorluk bronzları basıldı.","Alexandria Troas","Dalyan Köyü, Çanakkale, Türkiye","troas-coins",AUTHOR_ID
+"Kyzikos","kyzikos",CATEGORY_ID,1,1,"*","Mysia'nın zengin liman şehri. Elektron staterleri ile ünlü önemli darphane merkezi.","Kyzikos","Belkıs, Balıkesir, Türkiye","mysia-coins",AUTHOR_ID
+"Phokaia","phokaia",CATEGORY_ID,1,1,"*","Eski çağın önemli denizcilik merkezi. Erken elektron sikke üretimi yapılan darphane.","Phokaia","Foça, İzmir, Türkiye","ionia-coins",AUTHOR_ID
+"Klazomenai","klazomenai",CATEGORY_ID,1,1,"*","İyonya'nın önemli şehirlerinden. Zeytinyağı ticareti ve sikke üretimi ile tanınır.","Klazomenai","Urla İskelesi, İzmir, Türkiye","ionia-coins",AUTHOR_ID
+"Teos","teos",CATEGORY_ID,1,1,"*","Dionysos kültü ile ünlü İyonya şehri. Şarap ve sikke üretimi merkezi.","Teos","Sığacık, İzmir, Türkiye","ionia-coins",AUTHOR_ID
+"Kolophon","kolophon",CATEGORY_ID,1,1,"*","Apollon kültü merkezi. İyonya'nın önemli darphane şehirlerinden biri.","Kolophon","Değirmendere, İzmir, Türkiye","ionia-coins",AUTHOR_ID
+"Magnesia ad Maeandrum","magnesia-ad-maeandrum",CATEGORY_ID,1,1,"*","Artemis Leukophryene Tapınağı ile ünlü. Önemli darphane merkezi.","Magnesia ad Maeandrum","Tekin Köyü, Aydın, Türkiye","ionia-coins",AUTHOR_ID
+"Erythrai","erythrai",CATEGORY_ID,1,1,"*","İyonya'nın liman şehri. Herakles betimli sikkeleri ile tanınır.","Erythrai","Ildırı, İzmir, Türkiye","ionia-coins",AUTHOR_ID
+"Priene","priene",CATEGORY_ID,1,1,"*","Athena Polias Tapınağı'nın bulunduğu şehir. Düzenli sikke üretimi yapılan merkez.","Priene","Güllübahçe, Aydın, Türkiye","ionia-coins",AUTHOR_ID
+"Mytilene","mytilene",CATEGORY_ID,1,1,"*","Lesbos adasının başkenti. Önemli elektron ve gümüş sikke üretim merkezi.","Mytilene","Midilli, Yunanistan","aeolis-coins",AUTHOR_ID
+"Kyme","kyme",CATEGORY_ID,1,1,"*","Aiolis'in en büyük şehri. Amazonların kurduğu efsanevi darphane merkezi.","Kyme","Aliağa, İzmir, Türkiye","aeolis-coins",AUTHOR_ID
+"Aigai","aigai",CATEGORY_ID,1,1,"*","Aiolis'in dağlık bölgelerindeki antik şehir. Keçi betimli sikkeleri ünlüdür.","Aigai","Yuntdağı, İzmir, Türkiye","aeolis-coins",AUTHOR_ID
+"Myrina","myrina",CATEGORY_ID,1,1,"*","Aiolis bölgesinin liman şehri. Apollon kültü merkezi ve darphane.","Myrina","Aliağa yakını, İzmir, Türkiye","aeolis-coins",AUTHOR_ID
+"Elaia","elaia",CATEGORY_ID,1,1,"*","Pergamon'un liman şehri. Attalid sikkeleri basan önemli darphane.","Elaia","Zeytindağ, İzmir, Türkiye","aeolis-coins",AUTHOR_ID
+"Halikarnassos","halikarnassos",CATEGORY_ID,1,1,"*","Mausoleum anıt mezarı ile ünlü Karia'nın başkenti. Önemli darphane merkezi.","Halikarnassos","Bodrum, Muğla, Türkiye","caria-coins",AUTHOR_ID
+"Knidos","knidos",CATEGORY_ID,1,1,"*","Ünlü Aphrodite heykeli ile tanınan şehir. Gemi pruvasının bulunduğu sikkeleriyle ünlü.","Knidos","Datça, Muğla, Türkiye","caria-coins",AUTHOR_ID
+"Stratonikeia","stratonikeia",CATEGORY_ID,1,1,"*","Zeus ve Hekate kültleri ile ünlü Karia şehri. Roma döneminde aktif darphane.","Stratonikeia","Eskihisar, Muğla, Türkiye","caria-coins",AUTHOR_ID
+"Aphrodisias","aphrodisias",CATEGORY_ID,1,1,"*","Aphrodite kültü merkezi. Özellikle imparatorluk çağında sikke basan darphane.","Aphrodisias","Geyre, Aydın, Türkiye","caria-coins",AUTHOR_ID
+"Iasos","iasos",CATEGORY_ID,1,1,"*","Balıkçılık ile ünlü Karia liman şehri. Balık betimli sikkeleriyle tanınır.","Iasos","Kıyıkışlacık, Muğla, Türkiye","caria-coins",AUTHOR_ID
+"Kaunos","kaunos",CATEGORY_ID,1,1,"*","Karia-Lykia sınırındaki önemli liman şehri. Dikkat çekici kaya mezarları ile ünlü.","Kaunos","Dalyan, Muğla, Türkiye","caria-coins",AUTHOR_ID
+"Xanthos","xanthos",CATEGORY_ID,1,1,"*","Lykia Birliği'nin başkenti. Lykia dilinde yazıtlı sikkeleri ile önemli darphane.","Xanthos","Kınık, Antalya, Türkiye","lycia-coins",AUTHOR_ID
+"Patara","patara",CATEGORY_ID,1,1,"*","Lykia'nın önemli liman şehri. Apollon kültü merkezi ve darphane.","Patara","Gelemiş, Antalya, Türkiye","lycia-coins",AUTHOR_ID
+"Myra","myra",CATEGORY_ID,1,1,"*","Aziz Nikolaos'un piskoposluk yaptığı şehir. Lykia Birliği sikkelerini basan darphane.","Myra","Demre, Antalya, Türkiye","lycia-coins",AUTHOR_ID
+"Phaselis","phaselis",CATEGORY_ID,1,1,"*","Üç limanlı önemli ticaret şehri. Athena başlı sikkeleriyle tanınan darphane.","Phaselis","Tekirova, Antalya, Türkiye","lycia-coins",AUTHOR_ID
+"Limyra","limyra",CATEGORY_ID,1,1,"*","Lykia'nın iç bölgelerindeki önemli şehir. Perikles döneminde sikke basan darphane.","Limyra","Finike, Antalya, Türkiye","lycia-coins",AUTHOR_ID
+"Side","side",CATEGORY_ID,1,1,"*","Pamphylia'nın en önemli liman ve ticaret şehri. Athena-Apollon betimli sikkeleri ünlü.","Side","Manavgat, Antalya, Türkiye","pamphylia-coins",AUTHOR_ID
+"Perge","perge",CATEGORY_ID,1,1,"*","Artemis Pergaia kültü merkezi. Pamphylia'nın önemli darphane şehri.","Perge","Aksu, Antalya, Türkiye","pamphylia-coins",AUTHOR_ID
+"Aspendos","aspendos",CATEGORY_ID,1,1,"*","En iyi korunmuş antik tiyatro ile ünlü. Güreşçi betimli sikkeleriyle tanınan darphane.","Aspendos","Serik, Antalya, Türkiye","pamphylia-coins",AUTHOR_ID
+"Attaleia","attaleia",CATEGORY_ID,1,1,"*","II. Attalos tarafından kurulan şehir. Roma döneminde sikke basan darphane.","Attaleia","Antalya, Türkiye","pamphylia-coins",AUTHOR_ID
+"Tarsos","tarsos",CATEGORY_ID,1,1,"*","Aziz Paulus'un doğum yeri. Kilikia'nın en önemli darphane merkezi.","Tarsos","Tarsus, Mersin, Türkiye","cilicia-coins",AUTHOR_ID
+"Soloi","soloi",CATEGORY_ID,1,1,"*","Eski çağın ünlü bilim ve felsefe merkezi. Üzüm salkımı betimli sikkeleriyle tanınır.","Soloi","Mezitli, Mersin, Türkiye","cilicia-coins",AUTHOR_ID
+"Aigeai","aigeai",CATEGORY_ID,1,1,"*","Asklepios kültü merkezi. Tıp tanrısı betimli sikkeleriyle ünlü darphane.","Aigeai","Yumurtalık, Adana, Türkiye","cilicia-coins",AUTHOR_ID
+"Mallos","mallos",CATEGORY_ID,1,1,"*","Mitolojik kahin Amphilochos tarafından kurulduğuna inanılan şehir. Önemli darphane.","Mallos","Kızıltahta, Adana, Türkiye","cilicia-coins",AUTHOR_ID
+"Nagidos","nagidos",CATEGORY_ID,1,1,"*","Kilikia'nın Batı kıyısındaki liman şehri. Aphrodite ve Dionysos betimli sikkeleri ünlü.","Nagidos","Bozyazı yakını, Mersin, Türkiye","cilicia-coins",AUTHOR_ID
+"Sagalassos","sagalassos",CATEGORY_ID,1,1,"*","Pisidia'nın dağlık bölgelerindeki önemli şehir. İmparatorluk döneminde aktif darphane.","Sagalassos","Ağlasun, Burdur, Türkiye","pisidia-coins",AUTHOR_ID
+"Termessos","termessos",CATEGORY_ID,1,1,"*","Toros Dağları'nın güçlü ve bağımsız şehri. Büyük İskender'e bile direnmiş darphane.","Termessos","Korkuteli, Antalya, Türkiye","pisidia-coins",AUTHOR_ID
+"Antiocheia","antiocheia",CATEGORY_ID,1,1,"*","Pisidia'nın Roma kolonisi. Augusti tapınağı ve sikke üretimi ile ünlü.","Antiocheia","Yalvaç, Isparta, Türkiye","pisidia-coins",AUTHOR_ID
+"Apameia","apameia",CATEGORY_ID,1,1,"*","Phrygia'nın önemli ticaret merkezi. Nuh'un gemisi betimli sikkeleriyle ünlü darphane.","Apameia","Dinar, Afyonkarahisar, Türkiye","phrygia-coins",AUTHOR_ID
+"Laodikeia","laodikeia",CATEGORY_ID,1,1,"*","Yedi Kilise'den biri. Zengin ticaret şehri ve aktif darphane merkezi.","Laodikeia","Denizli, Türkiye","phrygia-coins",AUTHOR_ID
+"Hierapolis","hierapolis",CATEGORY_ID,1,1,"*","Kaplıcaları ile ünlü antik şehir. İmparatorluk çağında sikke basan darphane.","Hierapolis","Pamukkale, Denizli, Türkiye","phrygia-coins",AUTHOR_ID
+"Synnada","synnada",CATEGORY_ID,1,1,"*","Mermer ocakları ile ünlü Phrygia şehri. Roma döneminde sikke üretimi yaptı.","Synnada","Şuhut, Afyonkarahisar, Türkiye","phrygia-coins",AUTHOR_ID
+"Ankyra","ankyra",CATEGORY_ID,1,1,"*","Galatia'nın başkenti. Augustus'un vasiyetnamesinin (Res Gestae) bulunduğu şehir.","Ankyra","Ankara, Türkiye","galatia-coins",AUTHOR_ID
+"Pessinos","pessinos",CATEGORY_ID,1,1,"*","Kybele kültünün önemli merkezi. Galatia'nın kutsal şehri ve darphane.","Pessinos","Ballıhisar, Ankara, Türkiye","galatia-coins",AUTHOR_ID
+"Tavion","tavion",CATEGORY_ID,1,1,"*","Tektosages kabilesinin merkezi. Zeus tapınağı ve darphane şehri.","Tavion","Büyüknefes, Yozgat, Türkiye","galatia-coins",AUTHOR_ID
+"Kaisareia","kaisareia",CATEGORY_ID,1,1,"*","Kappadokia'nın başkenti ve en önemli şehri. Argaios Dağı betimli sikkeleriyle ünlü.","Kaisareia","Kayseri, Türkiye","cappadocia-coins",AUTHOR_ID
+"Tyana","tyana",CATEGORY_ID,1,1,"*","Ünlü filozof Apollonios'un doğum yeri. Kappadokia'nın önemli darphane şehri.","Tyana","Kemerhisar, Niğde, Türkiye","cappadocia-coins",AUTHOR_ID
+"Komana","komana",CATEGORY_ID,1,1,"*","Ma tanrıçasının kutsal şehri. Tapınak devleti statüsünde darphane merkezi.","Komana","Şar, Tokat, Türkiye","cappadocia-coins",AUTHOR_ID
+"Sinope","sinope",CATEGORY_ID,1,1,"*","Karadeniz'in en önemli liman şehri. Diogenes'in doğum yeri. Zengin darphane üretimi.","Sinope","Sinop, Türkiye","pontus-coins",AUTHOR_ID
+"Amisos","amisos",CATEGORY_ID,1,1,"*","Mithradates Krallığı'nın önemli şehri. Aktif Pontus darphane merkezi.","Amisos","Samsun, Türkiye","pontus-coins",AUTHOR_ID
+"Amaseia","amaseia",CATEGORY_ID,1,1,"*","Pontus krallarının başkenti. Coğrafyacı Strabon'un doğum yeri ve darphane.","Amaseia","Amasya, Türkiye","pontus-coins",AUTHOR_ID
+"Neokaisareia","neokaisareia",CATEGORY_ID,1,1,"*","Nero zamanında kurulan Pontus şehri. İmparatorluk sikkeleri basan darphane.","Neokaisareia","Niksar, Tokat, Türkiye","pontus-coins",AUTHOR_ID
+"Nikaia","nikaia",CATEGORY_ID,1,1,"*","İki ekümenik konsilin yapıldığı şehir. Bithynia'nın önemli darphane merkezi.","Nikaia","İznik, Bursa, Türkiye","bithynia-coins",AUTHOR_ID
+"Nikomedia","nikomedia",CATEGORY_ID,1,1,"*","Bithynia Krallığı'nın başkenti. Roma İmparatorluğu'nun Doğu başkentlerinden biri.","Nikomedia","İzmit, Kocaeli, Türkiye","bithynia-coins",AUTHOR_ID
+"Prusa","prusa",CATEGORY_ID,1,1,"*","Bithynia kralı Prusias tarafından kurulan şehir. Termal kaynakları ile ünlü darphane.","Prusa","Bursa, Türkiye","bithynia-coins",AUTHOR_ID
+"Kios","kios",CATEGORY_ID,1,1,"*","Marmara'nın önemli liman şehri. Bithynia'nın erken dönem darphane merkezi.","Kios","Gemlik, Bursa, Türkiye","bithynia-coins",AUTHOR_ID
+"Kalchedon","kalchedon",CATEGORY_ID,1,1,"*","Boğaz'ın Asya yakasındaki önemli şehir. 'Körlerin şehri' lakaplı darphane merkezi.","Kalchedon","Kadıköy, İstanbul, Türkiye","bithynia-coins",AUTHOR_ID

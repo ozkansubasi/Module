@@ -1,0 +1,346 @@
+{numistr}
+<style>
+    /* Haritanın kendisi için genel stil */
+    #single-mint-map {
+        width: 100%;
+        height: 400px;
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+    /* Bizim özel popup penceremiz */
+    .custom-popup-window {
+        position: absolute;
+        background: #FCF5ED;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        min-width: 200px;
+        max-width: 300px;
+        font-family: sans-serif;
+        display: none;
+        transform: translate(-50%, calc(-100% - 15px));
+        z-index: 1000;
+    }
+    .custom-popup-window::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0; height: 0;
+        border-left: 10px solid transparent;
+        border-right: 10px solid transparent;
+        border-top: 10px solid #FCF5ED;
+    }
+    .custom-popup-close-button {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        opacity: 0.7;
+    }
+    .custom-popup-close-button:hover { opacity: 1; }
+    .custom-popup-content h3 { margin: 0 0 8px 0; font-size: 16px; color: #333; }
+    .custom-popup-content p { margin: 0; font-size: 13px; line-height: 1.4; color: #555; }
+</style>
+<!-- 2. Haritanın Yükleneceği HTML Alanı -->
+<div id="single-mint-map"></div>
+<!-- 3. Haritayı ve Özel Popup'ı Çalıştıran JavaScript -->
+<script>
+function initSingleLocationMap() {
+    setTimeout(function() {
+
+        // Dil algılama - Joomla sayfasının diline göre
+        const currentLang = document.documentElement.lang || 'tr';
+        const isEnglish = currentLang.toLowerCase().startsWith('en');
+
+        class CustomInfoWindow extends google.maps.OverlayView {
+            constructor() {
+                super();
+                this.div = document.createElement('div');
+                this.div.className = 'custom-popup-window';
+                this.div.innerHTML = `
+                    <svg class="custom-popup-close-button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6D4C41" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <div class="custom-popup-content"><h3 id="popup-title-custom"></h3><p id="popup-desc-custom"></p></div>
+                `;
+                this.contentTitle = this.div.querySelector('#popup-title-custom');
+                this.contentDesc = this.div.querySelector('#popup-desc-custom');
+                this.closeButton = this.div.querySelector('.custom-popup-close-button');
+                this.closeButton.onclick = () => { this.close(); };
+            }
+            onAdd() { if (this.getPanes()) this.getPanes().floatPane.appendChild(this.div); }
+            onRemove() { if (this.div.parentElement) this.div.parentElement.removeChild(this.div); }
+            draw() {
+                const pos = this.get('position');
+                if (pos && this.getProjection()) {
+                    const point = this.getProjection().fromLatLngToDivPixel(pos);
+                    this.div.style.left = point.x + 'px';
+                    this.div.style.top = point.y + 'px';
+                }
+            }
+            open(map, marker) { this.set('position', marker.getPosition()); this.setMap(map); this.div.style.display = 'block'; }
+            close() { this.setMap(null); this.div.style.display = 'none'; }
+            setContent(title, desc) {
+                this.contentTitle.textContent = title;
+                this.contentDesc.textContent = desc || '';
+                // Açıklama yoksa paragrafı gizle
+                this.contentDesc.style.display = desc ? 'block' : 'none';
+            }
+        }
+        function findElementByLabel(label) {
+            const allElements = document.querySelectorAll('.el-title');
+            for (const element of allElements) {
+                if (element.textContent.trim().includes(label)) {
+                    const parentListItem = element.closest('.el-item');
+                    if (parentListItem) {
+                        return parentListItem.querySelector('.el-content');
+                    }
+                }
+            }
+            return null;
+        }
+        const mintNameElement = findElementByLabel('Darphane');
+        const coordinatesElement = findElementByLabel('Darphane Koordinatları');
+        if (!coordinatesElement || !mintNameElement) {
+            console.error("Harita için darphane adı veya koordinat elementi sayfada bulunamadı.");
+            return;
+        }
+        const name = mintNameElement.textContent.trim();
+        const coordsString = coordinatesElement.textContent.trim();
+
+        if (!coordsString || !coordsString.includes(',')) { return; }
+        const coordsArray = coordsString.split(',');
+        const lat = parseFloat(coordsArray[0]);
+        const lng = parseFloat(coordsArray[1]);
+        if (isNaN(lat) || isNaN(lng)) { return; }
+
+        // Darphane açıklamaları sözlüğü - Çift Dil Desteği (TR/EN)
+        const mintDescriptions = {
+            "Kyzikos": { tr: "Propontis kıyısında önemli bir ticaret merkezi", en: "Important trading center on the Propontis coast" },
+            "Pergamon": { tr: "Attalid Krallığı'nın başkenti", en: "Capital of the Attalid Kingdom" },
+            "Assos": { tr: "Antik Yunan filozofları için önemli merkez", en: "Important center for ancient Greek philosophers" },
+            "Troia": { tr: "Efsanevi Truva Savaşı'nın yeri", en: "Site of the legendary Trojan War" },
+            "Lampsakos": { tr: "Hellespontos kıyısında antik şehir", en: "Ancient city on the Hellespont" },
+            "Nikaia": { tr: "İznik Konsili'ne ev sahipliği yapmış şehir", en: "City that hosted the Council of Nicaea" },
+            "Nikomedia": { tr: "Bitinya Krallığı'nın başkenti", en: "Capital of the Kingdom of Bithynia" },
+            "Prusa": { tr: "Olympos Dağı eteğinde kurulmuş şehir", en: "City founded at the foot of Mount Olympus" },
+            "Chalkedon": { tr: "Boğaz'ın Asya yakasındaki antik şehir", en: "Ancient city on the Asian side of the Bosphorus" },
+            "Herakleia Pontike": { tr: "Karadeniz kıyısında önemli liman", en: "Important port on the Black Sea coast" },
+            "Sinope": { tr: "Karadeniz'in en önemli limanı", en: "Most important port of the Black Sea" },
+            "Amisos": { tr: "Pontus Krallığı'nın önemli şehri", en: "Important city of the Kingdom of Pontus" },
+            "Trapezus": { tr: "İpek Yolu'nun Karadeniz uç noktası", en: "Black Sea endpoint of the Silk Road" },
+            "Amasia": { tr: "Pontus krallarının mezar şehri", en: "Burial city of Pontic kings" },
+            "Aizanoi": { tr: "En iyi korunmuş Zeus tapınağına sahip şehir", en: "City with the best-preserved Temple of Zeus" },
+            "Synnada": { tr: "Mermer ocaklarıyla ünlü Frigya şehri", en: "Phrygian city famous for marble quarries" },
+            "Hierapolis": { tr: "Kutsal şehir ve kaplıca merkezi", en: "Sacred city and spa center" },
+            "Laodikeia": { tr: "Yedi Kilise'den biri", en: "One of the Seven Churches" },
+            "Apameia": { tr: "Frigya'nın önemli ticaret merkezi", en: "Important trading center of Phrygia" },
+            "Ankyra": { tr: "Galatya'nın başkenti, günümüz Türkiye'nin başkenti", en: "Capital of Galatia, modern capital of Turkey" },
+            "Pessinus": { tr: "Kybele kültünün merkezi", en: "Center of the cult of Cybele" },
+            "Kaisareia": { tr: "Erciyes Dağı eteğinde antik şehir", en: "Ancient city at the foot of Mount Erciyes" },
+            "Tyana": { tr: "Apollonius'un doğum yeri", en: "Birthplace of Apollonius" },
+            "Sardis": { tr: "Lidya Krallığı'nın başkenti, paranın doğum yeri", en: "Capital of Lydia, birthplace of coinage" },
+            "Ephesos": { tr: "Artemis Tapınağı'na ev sahipliği yapmış şehir", en: "City that hosted the Temple of Artemis" },
+            "Smyrna": { tr: "Ege'nin incisi, önemli liman şehri", en: "Pearl of the Aegean, important port city" },
+            "Miletos": { tr: "Felsefe ve bilimin doğum yeri", en: "Birthplace of philosophy and science" },
+            "Priene": { tr: "Helenistik şehir planlamasının örneği", en: "Example of Hellenistic urban planning" },
+            "Colophon": { tr: "Antik İonya şehri", en: "Ancient Ionian city" },
+            "Phocaea": { tr: "Batı Akdeniz kolonilerinin kurucusu", en: "Founder of western Mediterranean colonies" },
+            "Teos": { tr: "Dionysos kültünün merkezi", en: "Center of the cult of Dionysus" },
+            "Halikarnassos": { tr: "Mausoleum'un yeri, Herodotos'un doğum yeri", en: "Site of the Mausoleum, birthplace of Herodotus" },
+            "Knidos": { tr: "Aphrodite heykeliyle ünlü şehir", en: "City famous for its Aphrodite statue" },
+            "Aphrodisias": { tr: "Heykeltıraşlık okulu ve Aphrodite tapınağı", en: "Sculpture school and Temple of Aphrodite" },
+            "Stratonikeia": { tr: "Helenistik dönem şehri", en: "Hellenistic period city" },
+            "Mylasa": { tr: "Karya'nın eski başkenti", en: "Ancient capital of Caria" },
+            "Iasos": { tr: "Balıkçılıkla ünlü kıyı şehri", en: "Coastal city famous for fishing" },
+            "Xanthos": { tr: "Likya Birliği'nin başkenti", en: "Capital of the Lycian League" },
+            "Patara": { tr: "Apollon kehanet merkezi ve önemli liman", en: "Oracle of Apollo and important port" },
+            "Myra": { tr: "Aziz Nikolaos'un piskoposluk merkezi", en: "Bishopric of Saint Nicholas" },
+            "Phaselis": { tr: "Üç limanlı antik şehir", en: "Ancient city with three harbors" },
+            "Telmessos": { tr: "Kaya mezarlarıyla ünlü şehir", en: "City famous for rock tombs" },
+            "Tlos": { tr: "Pegasos'un mitolojik evi", en: "Mythological home of Pegasus" },
+            "Olympos": { tr: "Yanartaş'a yakın antik şehir", en: "Ancient city near the eternal flames" },
+            "Perge": { tr: "Aziz Paulus'un ziyaret ettiği şehir", en: "City visited by Saint Paul" },
+            "Side": { tr: "Köle ticaretinin merkezi", en: "Center of the slave trade" },
+            "Aspendos": { tr: "En iyi korunmuş Roma tiyatrosu", en: "Best-preserved Roman theater" },
+            "Attaleia": { tr: "II. Attalos tarafından kurulan liman şehri", en: "Port city founded by Attalus II" },
+            "Sagalassos": { tr: "Dağ yamacında kurulu iyi korunmuş şehir", en: "Well-preserved city on a mountain slope" },
+            "Termessos": { tr: "Büyük İskender'in alamadığı şehir", en: "City that Alexander the Great could not conquer" },
+            "Selge": { tr: "Toros Dağları'ndaki bağımsız şehir", en: "Independent city in the Taurus Mountains" },
+            "Antiocheia Pisidia": { tr: "Roma kolonisi ve Aziz Paulus'un ziyaret ettiği şehir", en: "Roman colony visited by Saint Paul" },
+            "Tarsus": { tr: "Aziz Paulus'un doğum yeri", en: "Birthplace of Saint Paul" },
+            "Anazarbos": { tr: "Kilikya'nın metropolisi", en: "Metropolis of Cilicia" },
+            "Kelenderis": { tr: "Kıbrıs'a en yakın liman", en: "Closest port to Cyprus" },
+            "Aigeai": { tr: "İskenderun Körfezi'nde liman şehri", en: "Port city in the Gulf of Iskenderun" },
+            "Soli": { tr: "Pompeiopolis olarak da bilinir", en: "Also known as Pompeiopolis" },
+            "Korykos": { tr: "Deniz kalesine sahip antik şehir", en: "Ancient city with a sea castle" },
+            "Olba": { tr: "Zeus Olbios tapınağına sahip şehir", en: "City with the Temple of Zeus Olbios" },
+            "Kyme": { tr: "Aiolis'in en büyük şehri", en: "Largest city of Aeolis" },
+            "Myrina": { tr: "Terrakotta figürleriyle ünlü", en: "Famous for terracotta figurines" },
+            "Pitane": { tr: "Arkesilaos'un doğum yeri", en: "Birthplace of Arcesilaus" },
+            "Elaea": { tr: "Pergamon'un limanı", en: "Harbor of Pergamon" },
+            "Abydos": { tr: "Çanakkale Boğazı'nın en dar noktası", en: "Narrowest point of the Dardanelles" },
+            "Alexandria Troas": { tr: "Roma döneminin önemli limanı", en: "Important port of the Roman period" },
+            "Ilion": { tr: "Antik Truva şehrinin yeri", en: "Site of ancient Troy" },
+            "Skepsis": { tr: "Aristoteles'in kütüphanesinin bulunduğu yer", en: "Location of Aristotle's library" },
+            "Rhodes": { tr: "Kolossos heykeliyle ünlü ada şehri", en: "Island city famous for the Colossus" },
+            "Kos": { tr: "Hipokrat'ın doğum yeri", en: "Birthplace of Hippocrates" },
+            "Samos": { tr: "Pisagor'un doğum yeri", en: "Birthplace of Pythagoras" },
+            "Chios": { tr: "Homeros'un muhtemel doğum yeri", en: "Possible birthplace of Homer" },
+            // Commagene Darphaneleri
+            "Samosata": { tr: "Commagene Krallığı'nın Fırat kıyısındaki başkenti", en: "Capital of Commagene Kingdom on the Euphrates" },
+            "Doliche": { tr: "Jüpiter Dolichenus kültüyle ünlü dini merkez", en: "Religious center famous for Jupiter Dolichenus cult" },
+            "Germanicia": { tr: "Kapadokya sınırında önemli Roma kenti", en: "Important Roman city on the Cappadocian border" },
+            // Isauria Darphaneleri
+            "Isaura": { tr: "İsaurya'nın en önemli kalesi ve merkezi", en: "Most important fortress and center of Isauria" },
+            "Germanicopolis": { tr: "Isauria'nın güneyindeki önemli kent", en: "Important city in southern Isauria" },
+            "Claudiopolis": { tr: "Stratejik geçiş noktasında yer alan kent", en: "City at a strategic crossing point" },
+            // Lycaonia Darphaneleri
+            "Iconium": { tr: "Likaonya'nın en büyük kenti, Roma kolonisi", en: "Largest city of Lycaonia, Roman colony" },
+            "Laranda": { tr: "Likaonya'nın güneydeki önemli merkezi", en: "Important center in southern Lycaonia" },
+            "Lystra": { tr: "Aziz Pavlus'un ziyaret ettiği Roma kolonisi", en: "Roman colony visited by Saint Paul" },
+            "Derbe": { tr: "Aziz Pavlus'un ziyaret ettiği kent", en: "City visited by Saint Paul" },
+            // Sophene Darphaneleri
+            "Arsamosata": { tr: "Sophene Krallığı'nın başkenti", en: "Capital of the Kingdom of Sophene" },
+            "Amida": { tr: "Dicle Nehri kıyısında stratejik kale", en: "Strategic fortress on the Tigris River" },
+            // Pisidya Ek Darphaneleri
+            "Kremna": { tr: "Roma kolonisi, Pamfilya sınırında stratejik şehir", en: "Roman colony, strategic city on Pamphylian border" },
+            "Antiocheia": { tr: "Pisidia Antiokheia, Aziz Pavlus'un misyonerlik merkezi", en: "Pisidian Antioch, center of Saint Paul missionary journey" },
+            // Ionya Ek Darphaneleri
+            "Kolophon": { tr: "Ion Birliği'nin önemli üyesi, atlı birlikleriyle ünlü", en: "Important member of Ionian League, famous for cavalry" },
+            "Klazomenai": { tr: "Ion Birliği üyesi, zeytinyağı ticareti merkezi", en: "Ionian League member, olive oil trade center" },
+            "Erythrai": { tr: "Ion Birliği'nin önemli üyelerinden", en: "Important member of Ionian League" },
+            "Lebedos": { tr: "Küçük Ion kenti, Dionyssos kültürü merkezi", en: "Small Ionian city, center of Dionysus cult" },
+            "Phokaia": { tr: "Denizci kent, Batı Akdeniz'de koloniler kurdu", en: "Seafaring city, established colonies in Western Mediterranean" },
+            "Magnesia ad Maeandrum": { tr: "Menderes Magnesiası, Artemis tapınağı ile ünlü", en: "Magnesia on the Maeander, famous for Temple of Artemis" },
+            // Karya Ek Darphaneleri
+            "Kaunos": { tr: "Dalyan kaya mezarları ile ünlü liman kenti", en: "Port city famous for rock-cut tombs at Dalyan" },
+            "Keramos": { tr: "Gökova Körfezi'nde antik liman kenti", en: "Ancient port city on Gokova Bay" },
+            "Myndos": { tr: "Bodrum yakınında antik liman kenti", en: "Ancient port city near Bodrum" },
+            // Likya Ek Darphaneleri
+            "Limyra": { tr: "Likya'nın en eski ve zengin kentlerinden", en: "One of the oldest and richest Lycian cities" },
+            "Arykanda": { tr: "Dağ yamacında beş teraslı antik kent", en: "Ancient city on five terraces on mountain slope" },
+            "Pinara": { tr: "Kaya mezarları ve tiyatrosuyla önemli Likya kenti", en: "Important Lycian city with rock tombs and theater" },
+            // Frigya Ek Darphaneleri
+            "Dorylaeum": { tr: "Eskişehir, stratejik Roma yolu kavşağı", en: "Eskisehir, strategic Roman road junction" },
+            "Philomelion": { tr: "Roma dönemine ait önemli Frigya kenti", en: "Important Phrygian city of Roman period" },
+            "Akmoneia": { tr: "Roma dönemi sikke basan Frigya kenti", en: "Phrygian city minting coins in Roman period" },
+            // Misya Ek Darphaneleri
+            "Parion": { tr: "Çanakkale yakınlarında antik liman kenti", en: "Ancient port city near Canakkale" },
+            "Adramytteion": { tr: "Edremit Körfezi'nde önemli liman kenti", en: "Important port city on Gulf of Edremit" },
+            "Pitane": { tr: "Çandarlı, antik liman ve ticaret merkezi", en: "Candarli, ancient port and trade center" },
+            // Bitinya Ek Darphaneleri
+            "Prusias ad Hypium": { tr: "Düzce Konuralp, Roma dönemi önemli kenti", en: "Duzce Konuralp, important city of Roman period" },
+            "Apameia Myrleia": { tr: "Mudanya yakınlarında antik kent", en: "Ancient city near Mudanya" },
+            // Pamfilya Ek Darphaneleri
+            "Sillyon": { tr: "Akropolis ve stadyumu ile önemli Pamfilya kenti", en: "Important Pamphylian city with acropolis and stadium" },
+            // Kilikya Ek Darphaneleri
+            "Seleukeia": { tr: "Silifke, önemli Helenistik ve Roma kenti", en: "Silifke, important Hellenistic and Roman city" },
+            "Soloi": { tr: "Mersin-Viranşehir, liman kenti", en: "Mersin-Viransehir, port city" },
+            "Issos": { tr: "Büyük İskender'in zafer kazandığı yer", en: "Site of Alexander the Great victory" },
+            "Mallos": { tr: "Ceyhan yakınında antik liman kenti", en: "Ancient port city near Ceyhan" },
+            // Kapadokya Ek Darphaneleri
+            "Komana": { tr: "Ma tanrıçası tapınağı ile ünlü dini merkez", en: "Religious center famous for temple of Ma goddess" },
+            // Troas Ek Darphaneleri
+            "Ilion": { tr: "Truva, İlyada'nın efsanevi kenti", en: "Troy, legendary city of the Iliad" },
+            // Pontus Ek Darphaneleri
+            "Kerasous": { tr: "Giresun, kirazın anavatanı", en: "Giresun, birthplace of cherry" },
+            "Pharnakeia": { tr: "Fatsa yakınlarında Pontus liman kenti", en: "Pontus port city near Fatsa" },
+            // Paflagonya Ek Darphaneleri
+            "Pompeiopolis": { tr: "Taşköprü, Roma dönemi önemli kenti", en: "Taskopru, important city of Roman period" },
+            "Amastris": { tr: "Paflagonya'nın önemli liman şehri", en: "Important port city of Paphlagonia" },
+            "Gangra": { tr: "Galatya'nın kuzey sınırındaki şehir", en: "City on the northern border of Galatia" },
+            // Aiolis Ek Darphaneleri
+            "Temnos": { tr: "Gediz vadisinde Aiol kenti", en: "Aeolian city in Gediz valley" },
+            "Aigai": { tr: "Aiol Birliği'nin 12 kentinden biri", en: "One of 12 cities of Aeolian League" },
+            "Grynion": { tr: "Apollon tapınağı ile ünlü Aiol kenti", en: "Aeolian city famous for Temple of Apollo" }
+        };
+
+        // Dile göre açıklama seç
+        function getMintDescription(mintName) {
+            const mint = mintDescriptions[mintName];
+            if (!mint) return '';
+            return isEnglish ? mint.en : mint.tr;
+        }
+
+        // Darphane için açıklama bul
+        const mintDesc = getMintDescription(name);
+
+        const mapStyle = [{"featureType":"all","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"landscape.natural","elementType":"geometry","stylers":[{"color":"#e7c8ae"}]},{"featureType":"landscape.natural.landcover","elementType":"geometry","stylers":[{"color":"#f3e0c5"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#d1ad6f"}]},{"featureType":"road","stylers":[{"visibility":"off"}]},{"featureType":"poi","stylers":[{"visibility":"off"}]},{"featureType":"administrative","stylers":[{"visibility":"off"}]},{"featureType":"transit","stylers":[{"visibility":"off"}]}];
+
+        const mapOptions = {
+            center: { lat: lat, lng: lng },
+            zoom: 8, // Bölge isimlerinin de görünmesi için zoom'u biraz uzaklaştırdık
+            styles: mapStyle,
+            mapTypeId: 'terrain',
+            disableDefaultUI: true,
+            zoomControl: true,
+            scrollwheel: false
+        };
+
+        const map = new google.maps.Map(document.getElementById("single-mint-map"), mapOptions);
+        const customInfoWindow = new CustomInfoWindow();
+        // Sikkenin darphanesi için standart işaretçiyi oluştur
+        const marker = new google.maps.Marker({
+            position: { lat: lat, lng: lng },
+            map: map,
+            title: name
+        });
+        marker.addListener('click', () => {
+            customInfoWindow.setContent(name, mintDesc);
+            customInfoWindow.open(map, marker);
+        });
+        // --- 17 ANTİK BÖLGE - Çift Dil Desteği (TR/EN) ---
+        const ancientRegions = [
+            { name: 'LYDIA', lat: 38.6, lng: 28.2, desc: "Paranın icat edildiği bölge", descEn: "Birthplace of coinage" },
+            { name: 'IONIA', lat: 37.9, lng: 27.3, desc: "Antik felsefe ve bilimin beşiği", descEn: "Cradle of ancient philosophy and science" },
+            { name: 'CARIA', lat: 37.5, lng: 28.3, desc: "Mausoleum'un bölgesi", descEn: "Region of the Mausoleum" },
+            { name: 'LYCIA', lat: 36.6, lng: 29.8, desc: "İlk demokratik federasyon", descEn: "First democratic federation" },
+            { name: 'PHRYGIA', lat: 38.8, lng: 30.5, desc: "Kral Midas'ın toprakları", descEn: "Lands of King Midas" },
+            { name: 'CILICIA', lat: 37.0, lng: 35.5, desc: "Aziz Paulus'un memleketi", descEn: "Homeland of Saint Paul" },
+            { name: 'PAMPHYLIA', lat: 37.0, lng: 31.0, desc: "Aspendos ve Side", descEn: "Aspendos and Side" },
+            { name: 'MYSIA', lat: 39.9, lng: 27.9, desc: "Pergamon'un bölgesi", descEn: "Region of Pergamon" },
+            { name: 'PISIDIA', lat: 37.7, lng: 30.5, desc: "Dağlık bölge", descEn: "Mountainous region" },
+            { name: 'BITHYNIA', lat: 40.5, lng: 31.0, desc: "İznik Konsili'nin bölgesi", descEn: "Region of the Nicaean Council" },
+            { name: 'CAPPADOCIA', lat: 38.6, lng: 35.5, desc: "Peri bacaları bölgesi", descEn: "Fairy chimneys region" },
+            { name: 'GALATIA', lat: 39.9, lng: 32.8, desc: "Kelt yurdu, Ankara", descEn: "Celtic homeland, Ankara" },
+            { name: 'TROAS', lat: 39.8, lng: 26.5, desc: "Truva Savaşı'nın yeri", descEn: "Site of the Trojan War" },
+            { name: 'AEOLIS', lat: 39.2, lng: 27.0, desc: "Aiol kolonileri", descEn: "Aeolian colonies" },
+            { name: 'PONTUS', lat: 40.8, lng: 37.5, desc: "Mithridates'in krallığı", descEn: "Kingdom of Mithridates" },
+            { name: 'PAPHLAGONIA', lat: 41.5, lng: 34.0, desc: "Karadeniz limanları", descEn: "Black Sea ports" },
+            { name: 'COMMAGENE', lat: 37.9, lng: 38.5, desc: "Nemrut Dağı ve Grek-Pers senkretik kültürü", descEn: "Mount Nemrut and Greco-Persian syncretic culture" },
+            { name: 'ISAURIA', lat: 37.1, lng: 32.2, desc: "Toros Dağları'nın savaşçı dağlı kabileleri", descEn: "Warrior mountain tribes of the Taurus Mountains" },
+            { name: 'LYCAONIA', lat: 37.5, lng: 33.5, desc: "Aziz Pavlus'un misyonerlik yolculukları bölgesi", descEn: "Region of Saint Paul's missionary journeys" },
+            { name: 'SOPHENE', lat: 38.7, lng: 39.5, desc: "Fırat'ın yukarı havzasında Armeno-İrani krallık", descEn: "Armeno-Iranian kingdom in the upper Euphrates basin" }
+        ];
+        ancientRegions.forEach(region => {
+            new google.maps.Marker({
+                position: { lat: region.lat, lng: region.lng },
+                map: map,
+                // İşaretçiyi görünmez yapıp sadece metin etiketini gösteriyoruz
+                icon: {
+                    url: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", // 1x1 şeffaf piksel
+                    anchor: new google.maps.Point(0, 0)
+                },
+                label: {
+                    text: region.name,
+                    color: '#8D6E63', // Daha koyu, okunaklı bir kahverengi
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    className: 'map-region-label' // Gerekirse ek stil için
+                }
+            });
+        });
+        // --- YENİ BÖLÜM SONU ---
+        map.addListener('click', function() {
+            customInfoWindow.close();
+        });
+    }, 500);
+}
+</script>
+<!-- 4. Google Maps API'yi Yükleyen Kod -->
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDU7if8IGPaJQ62hLW-CAaCRv0xHe3c2j4&callback=initSingleLocationMap"></script>
+{/numistr}

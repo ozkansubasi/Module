@@ -80,15 +80,19 @@ function numistr_render_gallery() {
          */
         $col = 0; // aktif satır sütun sayacı (0 → ilk, 1 → ikinci)
 
+        // Base URL - Joomla language filter ve SEF'i tamamen bypass etmek için
+        $baseUrl = rtrim(\Joomla\CMS\Uri\Uri::root(), '/');
+
         foreach ($images as $idx => $image) {
-            // DÜZELTİLDİ: &format=raw parametresi kaldırıldı
-            $thumbUrl = Route::_('index.php?option=com_numistr&view=gorsel&id='.(int)$image->image_id.'&wm=0', false);
-            if ($idx === 0 && !empty($coverOverride)) {
-                // Dış kapak varsa ilk görselin thumb'ında onu kullan
-                $thumbUrl = $coverOverride;
-            }
-            // DÜZELTİLDİ: &format=raw parametresi kaldırıldı
-            $popupUrl = Route::_('index.php?option=com_numistr&view=gorsel&id='.(int)$image->image_id.'&wm=1', false);
+            // ABSOLUTE URL with format=raw - /tr/ prefix'ini atla
+            // HER GÖRSEL KENDİ image_id'sini kullanır
+            $thumbUrl = $baseUrl . '/index.php?option=com_numistr&view=gorsel&format=raw&id='.(int)$image->image_id.'&wm=0';
+
+            // NOT: coverOverride (sikke-gorsel-url) SADECE intro image içindir
+            // Gallery'de her görsel kendi coins_images kaydını kullanır
+
+            // ABSOLUTE URL with format=raw - Joomla language filter ve SEF'i tamamen bypass et
+            $popupUrl = $baseUrl . '/index.php?option=com_numistr&view=gorsel&format=raw&id='.(int)$image->image_id.'&wm=1';
 
             // --- ÇİFTLİ GÖRSEL TESPİTİ: image_type = "detay" ise tek satır ---
             $t = strtolower(trim((string)($image->image_type ?? '')));

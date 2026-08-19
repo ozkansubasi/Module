@@ -1,0 +1,733 @@
+{numistr}
+<style>
+    #google-antik-harita { width: 100%; height: 100%; position: absolute !important; top: 0; left: 0; overflow: hidden; }
+    .custom-popup-window { position: absolute; background: #FCF5ED; padding: 15px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); min-width: 250px; max-width: 350px; font-family: sans-serif; display: none; transform: translate(-50%, calc(-100% - 15px)); transition: opacity 0.2s; z-index: 1001; }
+    .custom-popup-window::after { content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 10px solid #FCF5ED; }
+    .custom-popup-close-button { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; cursor: pointer; opacity: 0.7; }
+    .custom-popup-close-button:hover { opacity: 1; }
+    .custom-popup-content h3 { margin: 0 0 10px 0; font-size: 16px; color: #333; }
+    .custom-popup-content p { margin: 0; font-size: 14px; line-height: 1.5; color: #555; }
+
+    .map-static-label {
+        position: absolute;
+        background: transparent;
+        text-align: center;
+        white-space: nowrap;
+        transform: translate(-50%, -50%);
+        transition: opacity 0.3s ease-in-out;
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .map-region-label {
+        color: #5e4a3c;
+        font-size: 15px;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px #f3e0c5;
+        cursor: pointer;
+        z-index: 100;
+        transition: color 0.2s ease-in-out;
+    }
+    .map-region-label:hover {
+        color: #c0392b;
+    }
+    .map-city-label {
+        color: #495057;
+        font-size: 11px;
+        font-weight: normal;
+        pointer-events: none;
+        z-index: 98;
+    }
+    /* Alt Bölgeler (Diğer Bölgeler kategorisi) - Orta boy */
+    .map-subregion-label {
+        color: #7a6858;
+        font-size: 13px;
+        font-weight: 600;
+        text-shadow: 1px 1px 2px #f3e0c5;
+        cursor: pointer;
+        z-index: 99;
+        transition: color 0.2s ease-in-out;
+    }
+    .map-subregion-label:hover {
+        color: #c0392b;
+    }
+    .map-static-label.hidden {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Lejant Toggle Butonu */
+    .map-legend-toggle {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(252, 245, 237, 0.95);
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        font-family: sans-serif;
+        font-size: 12px;
+        color: #5e4a3c;
+        cursor: pointer;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .map-legend-toggle:hover {
+        background: rgba(252, 245, 237, 1);
+    }
+    /* Mobilde gizle */
+    @media (max-width: 768px) {
+        .map-legend-toggle { display: none; }
+        .map-legend { display: none !important; }
+    }
+
+    /* Lejant (Legend) Kutusu */
+    .map-legend {
+        position: absolute;
+        top: 45px;
+        right: 10px;
+        background: rgba(252, 245, 237, 0.95);
+        padding: 10px 14px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        font-family: sans-serif;
+        font-size: 11px;
+        z-index: 1000;
+        min-width: 140px;
+        display: none;
+    }
+    .map-legend.open {
+        display: block;
+    }
+    .map-legend-title {
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #5e4a3c;
+        border-bottom: 1px solid #d4c4b0;
+        padding-bottom: 6px;
+        font-size: 12px;
+    }
+    .map-legend-item {
+        display: flex;
+        align-items: center;
+        margin: 5px 0;
+        color: #555;
+    }
+    .map-legend-icon {
+        min-width: 60px;
+        margin-right: 10px;
+        text-align: left;
+        flex-shrink: 0;
+    }
+    /* Lejant ikonları - haritadaki görünümle tutarlı */
+    .legend-main-region { color: #5e4a3c; font-size: 12px; font-weight: bold; }
+    .legend-sub-region { color: #7a6858; font-size: 11px; font-weight: 600; }
+    .legend-city { color: #495057; font-size: 10px; }
+    .legend-mint { color: #c0392b; font-size: 14px; }
+    .map-legend-label { color: #777; font-size: 10px; }
+
+    /* Bölge Popup Stili - Kompakt */
+    .region-popup-window {
+        position: absolute !important;
+        background: #FCF5ED !important;
+        padding: 12px 14px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        min-width: 200px;
+        max-width: 260px;
+        font-family: sans-serif;
+        display: none;
+        z-index: 9999 !important;
+        pointer-events: auto;
+    }
+    .region-popup-window::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-top: 8px solid #FCF5ED;
+    }
+    .region-popup-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+    .region-popup-close:hover { opacity: 1; }
+    .region-popup-title {
+        margin: 0 0 2px 0;
+        font-size: 14px;
+        font-weight: bold;
+        color: #5e4a3c;
+    }
+    .region-popup-subtitle {
+        margin: 0 0 6px 0;
+        font-size: 11px;
+        color: #7a6858;
+        font-style: italic;
+    }
+    .region-popup-desc {
+        margin: 0 0 8px 0;
+        font-size: 12px;
+        line-height: 1.4;
+        color: #555;
+    }
+    .region-popup-links {
+        font-size: 11px;
+        line-height: 1.6;
+    }
+    .region-popup-links a {
+        color: #5e4a3c;
+        text-decoration: none;
+        border-bottom: 1px dotted #5e4a3c;
+        transition: color 0.2s;
+    }
+    .region-popup-links a:hover {
+        color: #c0392b;
+        border-bottom-color: #c0392b;
+    }
+</style>
+
+<!-- Harita Wrapper - Popup ve Lejant için position context -->
+<div id="map-wrapper" style="position: relative; width: 100%; height: 600px;">
+    <div id="google-antik-harita" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></div>
+
+    <!-- Lejant Toggle Butonu -->
+    <button class="map-legend-toggle" id="legend-toggle" title="Lejantı Göster/Gizle">
+        <span>ℹ️</span>
+        <span id="legend-toggle-text">Lejant</span>
+    </button>
+
+    <!-- Lejant Kutusu -->
+    <div class="map-legend" id="map-legend">
+        <div class="map-legend-title" id="legend-title">Harita Lejantı</div>
+        <div class="map-legend-item">
+            <span class="map-legend-icon legend-main-region">LYDIA</span>
+            <span class="map-legend-label" id="legend-region">Antik Bölge</span>
+        </div>
+        <div class="map-legend-item">
+            <span class="map-legend-icon legend-city">Sardis</span>
+            <span class="map-legend-label" id="legend-city">Antik Şehir</span>
+        </div>
+        <div class="map-legend-item">
+            <span class="map-legend-icon legend-mint">●</span>
+            <span class="map-legend-label" id="legend-mint">Darphane</span>
+        </div>
+    </div>
+
+    <!-- Bölge Popup -->
+    <div class="region-popup-window" id="region-popup">
+        <svg class="region-popup-close" id="region-popup-close" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6D4C41" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+        <h3 class="region-popup-title" id="region-popup-title"></h3>
+        <p class="region-popup-subtitle" id="region-popup-subtitle"></p>
+        <p class="region-popup-desc" id="region-popup-desc"></p>
+        <div class="region-popup-links" id="region-popup-links"></div>
+    </div>
+</div>
+
+<script>
+function initGoogleMap() {
+    waitForMarkerClusterer();
+}
+function waitForMarkerClusterer() {
+    if (typeof markerClusterer !== 'undefined' && typeof markerClusterer.MarkerClusterer !== 'undefined') {
+        startMapLogic();
+    } else {
+        setTimeout(waitForMarkerClusterer, 100);
+    }
+}
+function startMapLogic() {
+
+    // Dil algılama - Joomla sayfasının diline göre
+    const currentLang = document.documentElement.lang || 'tr';
+    const isEnglish = currentLang.toLowerCase().startsWith('en');
+
+    // Lejant çift dil desteği
+    const legendLabels = {
+        tr: {
+            title: "Harita Lejantı",
+            region: "Antik Bölge",
+            city: "Antik Şehir",
+            mint: "Darphane"
+        },
+        en: {
+            title: "Map Legend",
+            region: "Ancient Region",
+            city: "Ancient City",
+            mint: "Mint"
+        }
+    };
+
+    // Lejant metinlerini güncelle
+    const lang = isEnglish ? 'en' : 'tr';
+    document.getElementById('legend-title').textContent = legendLabels[lang].title;
+    document.getElementById('legend-region').textContent = legendLabels[lang].region;
+    document.getElementById('legend-city').textContent = legendLabels[lang].city;
+    document.getElementById('legend-mint').textContent = legendLabels[lang].mint;
+
+    // Bölge Popup elementleri
+    const regionPopup = document.getElementById('region-popup');
+    const regionPopupTitle = document.getElementById('region-popup-title');
+    const regionPopupSubtitle = document.getElementById('region-popup-subtitle');
+    const regionPopupDesc = document.getElementById('region-popup-desc');
+    const regionPopupLinks = document.getElementById('region-popup-links');
+    const regionPopupClose = document.getElementById('region-popup-close');
+
+    // Lejant toggle
+    const legendToggle = document.getElementById('legend-toggle');
+    const mapLegend = document.getElementById('map-legend');
+
+    legendToggle.addEventListener('click', () => {
+        mapLegend.classList.toggle('open');
+    });
+
+    // Popup kapat butonu
+    regionPopupClose.addEventListener('click', () => {
+        regionPopup.style.display = 'none';
+    });
+
+    // Bölge popup'ı göster fonksiyonu
+    function showRegionPopup(region, x, y) {
+        const title = isEnglish ? region.name : (region.name_tr || region.name);
+        const subtitle = isEnglish ? (region.name_tr || '') : region.name;
+        const desc = isEnglish ? (region.descEn || region.desc) : region.desc;
+        const coinsLink = isEnglish ? (region.link_en || '') : (region.link_tr || '');
+        const coinsLinkText = isEnglish ? 'View Coins' : 'Sikkeleri İncele';
+        const detailLink = isEnglish ? (region.detail_en || '') : (region.detail_tr || '');
+        const detailLinkText = isEnglish ? 'More Info' : 'Ayrıntılı Bilgi';
+
+        regionPopupTitle.textContent = title;
+        regionPopupSubtitle.textContent = subtitle !== title ? subtitle : '';
+        regionPopupDesc.textContent = desc;
+
+        // Linkleri oluştur
+        let linksHtml = '';
+        if (coinsLink) {
+            linksHtml += '<a href="' + coinsLink + '">' + coinsLinkText + '</a>';
+        }
+        if (detailLink) {
+            if (linksHtml) linksHtml += ' · ';
+            linksHtml += '<a href="' + detailLink + '">' + detailLinkText + '</a>';
+        }
+        regionPopupLinks.innerHTML = linksHtml;
+
+        // Popup pozisyonunu ayarla
+        regionPopup.style.setProperty('left', x + 'px', 'important');
+        regionPopup.style.setProperty('top', y + 'px', 'important');
+        regionPopup.style.setProperty('display', 'block', 'important');
+    }
+
+    // DÜZELTME: Eksik olan hide() ve show() metodları eklendi.
+    class MapLabel extends google.maps.OverlayView {
+        constructor(position, text, className, onClickCallback) {
+            super();
+            this.position = position;
+            this.div = document.createElement('div');
+            this.div.className = 'map-static-label ' + className;
+            this.div.textContent = text;
+            this.isClickable = !!onClickCallback;
+
+            if (this.isClickable) {
+                this.div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    onClickCallback();
+                });
+            }
+        }
+        onAdd() {
+            const panes = this.getPanes();
+            if (this.isClickable) {
+                panes.floatPane.appendChild(this.div); // Tıklanabilir etiketler en üstte
+            } else {
+                panes.overlayLayer.appendChild(this.div);
+            }
+        }
+        onRemove() { if (this.div.parentElement) this.div.parentElement.removeChild(this.div); }
+        draw() { const point = this.getProjection().fromLatLngToDivPixel(this.position); if (point) { this.div.style.left = point.x + 'px'; this.div.style.top = point.y + 'px'; } }
+
+        // EKSİK OLAN FONKSİYONLAR
+        hide() { this.div.classList.add('hidden'); }
+        show() { this.div.classList.remove('hidden'); }
+    }
+
+    class CustomInfoWindow extends google.maps.OverlayView { /* ... Önceki kodla aynı ... */ }
+    class OptimizedRenderer { /* ... Önceki kodla aynı ... */ }
+    CustomInfoWindow = class extends google.maps.OverlayView { constructor() { super(); this.div = document.createElement('div'); this.div.className = 'custom-popup-window'; this.div.innerHTML = `<svg class="custom-popup-close-button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6D4C41" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><div class="custom-popup-content"><h3 id="popup-title-custom"></h3><p id="popup-content-custom"></p></div>`; this.contentTitle = this.div.querySelector('#popup-title-custom'); this.contentBody = this.div.querySelector('#popup-content-custom'); this.closeButton = this.div.querySelector('.custom-popup-close-button'); this.closeButton.onclick = () => { this.close(); }; } onAdd() { this.getPanes().floatPane.appendChild(this.div); } onRemove() { if (this.div.parentElement) this.div.parentElement.removeChild(this.div); } draw() { const pos = this.get('position'); if (pos && this.getProjection()) { const p = this.getProjection().fromLatLngToDivPixel(pos); this.div.style.left = p.x + 'px'; this.div.style.top = p.y + 'px'; } } open(map, marker) { this.set('position', marker.getPosition()); this.setMap(map); this.draw(); this.div.style.display = 'block'; } close() { this.setMap(null); this.div.style.display = 'none'; } setContent(title, content) { this.contentTitle.textContent = title; this.contentBody.textContent = content || ''; } };
+    OptimizedRenderer = class { render({ count, position }, stats) { const iconBasePath = '/media/map-icons/'; let iconUrl = iconBasePath + 'cluster-s.png'; let size = 30; if (count > 100) { iconUrl = iconBasePath + 'cluster-l.png'; size = 44; } else if (count > 10) { iconUrl = iconBasePath + 'cluster-m.png'; size = 36; } return new google.maps.Marker({ position, icon: { url: iconUrl, scaledSize: new google.maps.Size(size, size), }, label: { text: String(count), color: '#FCF5ED', fontSize: '12px', fontWeight: 'bold', }, zIndex: 1000 + count, }); } };
+
+    const mapStyle = [{"featureType":"all","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"landscape.natural","elementType":"geometry","stylers":[{"color":"#e7c8ae"}]},{"featureType":"landscape.natural.landcover","elementType":"geometry","stylers":[{"color":"#f3e0c5"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#d1ad6f"}]},{"featureType":"road","stylers":[{"visibility":"off"}]},{"featureType":"poi","stylers":[{"visibility":"off"}]},{"featureType":"administrative","stylers":[{"visibility":"off"}]},{"featureType":"transit","stylers":[{"visibility":"off"}]}];
+    const mapOptions = { center: { lat: 39.0, lng: 35.0 }, zoom: 7, styles: mapStyle, mapTypeId: 'terrain', disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative' };
+    const map = new google.maps.Map(document.getElementById("google-antik-harita"), mapOptions);
+
+    // Haritaya tıklandığında lejantı kapat
+    map.addListener('click', () => {
+        mapLegend.classList.remove('open');
+    });
+
+    const customInfoWindow = new CustomInfoWindow();
+    const locationIcon = { path: google.maps.SymbolPath.CIRCLE, scale: 4.5, fillOpacity: 0, strokeColor: '#c0392b', strokeWeight: 1.5 };
+    const mapClusterer = new markerClusterer.MarkerClusterer({ map, renderer: new OptimizedRenderer() });
+
+    let activeRequestController = null;
+    function updateMarkers() {
+        const currentZoom = map.getZoom();
+        if (currentZoom < 8) {
+            mapClusterer.clearMarkers();
+            return;
+        }
+        const bounds = map.getBounds();
+        if (!bounds) return;
+        if (activeRequestController) { activeRequestController.abort(); }
+        activeRequestController = new AbortController();
+        const signal = activeRequestController.signal;
+        const ne = bounds.getNorthEast();
+        const sw = bounds.getSouthWest();
+        const url = `/get_points.php?zoom=${currentZoom}&ne_lat=${ne.lat()}&ne_lng=${ne.lng()}&sw_lat=${sw.lat()}&sw_lng=${sw.lng()}&lang=${isEnglish ? 'en' : 'tr'}`;
+
+        fetch(url, { signal }).then(response => response.json()).then(responseJson => {
+            if (responseJson.error) { throw new Error(`Sunucu taraflı hata: ${responseJson.error}`); }
+            const data = responseJson.data;
+            mapClusterer.clearMarkers();
+            const newMarkers = data.map(point => {
+                const position = { lat: point[0], lng: point[1] };
+                const name = point[2];
+                const desc = point[3];
+                const marker = new google.maps.Marker({ position, icon: locationIcon, zIndex: 1 });
+                marker.addListener('click', function(e) { e.domEvent.stopPropagation(); mapClusterer.markers.forEach(m => m.setZIndex(1)); this.setZIndex(100); customInfoWindow.setContent(name, desc); customInfoWindow.open(map, this); });
+                return marker;
+            });
+            mapClusterer.addMarkers(newMarkers);
+        }).catch(error => { if (error.name !== 'AbortError') { console.error("Markerlar güncellenirken hata:", error); } }).finally(() => { activeRequestController = null; });
+    }
+    google.maps.event.addListener(map, 'idle', updateMarkers);
+
+    // 16 Ana Antik Anadolu Bölgesi - Çift Dil Desteği (TR/EN)
+    const anatolianRegions = [
+        { name: "LYDIA", name_tr: "LİDYA", lat: 38.6, lng: 28.2, desc: "Paranın icat edildiği bölge, Croesus'un krallığı", descEn: "Birthplace of coinage, Kingdom of Croesus", link_tr: "/tr/lidya-sikkeleri", link_en: "/en/lydia-coins" },
+        { name: "IONIA", name_tr: "İYONYA", lat: 37.9, lng: 27.3, desc: "Antik felsefe ve bilimin beşiği", descEn: "Cradle of ancient philosophy and science", link_tr: "/tr/ionya-sikkeleri", link_en: "/en/ionia-coins" },
+        { name: "CARIA", name_tr: "KARYA", lat: 37.5, lng: 28.3, desc: "Mausoleum ve Halikarnassos'un bölgesi", descEn: "Region of the Mausoleum and Halicarnassus", link_tr: "/tr/karya-sikkeleri", link_en: "/en/caria-coins" },
+        { name: "LYCIA", name_tr: "LİKYA", lat: 36.6, lng: 29.8, desc: "Dünyanın ilk demokratik federasyonu", descEn: "World's first democratic federation", link_tr: "/tr/likya-sikkeleri", link_en: "/en/lycia-coins" },
+        { name: "PHRYGIA", name_tr: "FRİGYA", lat: 38.8, lng: 30.5, desc: "Kral Midas ve Gordion'un toprakları", descEn: "Lands of King Midas and Gordion", link_tr: "/tr/frigya-sikkeleri", link_en: "/en/phrygia-coins" },
+        { name: "CILICIA", name_tr: "KİLİKYA", lat: 37.0, lng: 35.5, desc: "Tarsus ve Aziz Paulus'un memleketi", descEn: "Tarsus and homeland of Saint Paul", link_tr: "/tr/kilikya-sikkeleri", link_en: "/en/cilicia-coins" },
+        { name: "PAMPHYLIA", name_tr: "PAMFİLYA", lat: 37.0, lng: 31.0, desc: "Aspendos ve Side'nin bölgesi", descEn: "Region of Aspendos and Side", link_tr: "/tr/pamfilya-sikkeleri", link_en: "/en/pamphylia-coins" },
+        { name: "MYSIA", name_tr: "MİSYA", lat: 39.9, lng: 27.9, desc: "Pergamon ve Helenistik kültürün merkezi", descEn: "Pergamon and center of Hellenistic culture", link_tr: "/tr/misya-sikkeleri", link_en: "/en/mysia-coins" },
+        { name: "PISIDIA", name_tr: "PİSİDYA", lat: 37.7, lng: 30.5, desc: "Dağlık bölge, Sagalassos ve Termessos", descEn: "Mountainous region, Sagalassos and Termessos", link_tr: "/tr/pisidya-sikkeleri", link_en: "/en/pisidia-coins" },
+        { name: "BITHYNIA", name_tr: "BİTİNYA", lat: 40.5, lng: 31.0, desc: "Nikomedia ve İznik Konsili'nin bölgesi", descEn: "Nicomedia and region of the Nicaean Council", link_tr: "/tr/bitinya-sikkeleri", link_en: "/en/bithynia-coins" },
+        { name: "CAPPADOCIA", name_tr: "KAPADOKYA", lat: 38.6, lng: 35.5, desc: "Peri bacaları ve yeraltı şehirleri", descEn: "Fairy chimneys and underground cities", link_tr: "/tr/kapadokya-sikkeleri", link_en: "/en/cappadocia-coins" },
+        { name: "GALATIA", name_tr: "GALATYA", lat: 39.9, lng: 32.8, desc: "Kelt kökenli Galatların yurdu, Ankara", descEn: "Homeland of Celtic Galatians, Ankara", link_tr: "/tr/galatya-sikkeleri", link_en: "/en/galatia-coins" },
+        { name: "TROAS", name_tr: "TROAS", lat: 39.8, lng: 26.5, desc: "Efsanevi Truva Savaşı'nın yeri", descEn: "Site of the legendary Trojan War", link_tr: "/tr/troas-sikkeleri", link_en: "/en/troas-coins" },
+        { name: "AEOLIS", name_tr: "AİOLİS", lat: 39.2, lng: 27.0, desc: "Aiol Yunanlılarının kolonileri", descEn: "Colonies of the Aeolian Greeks", link_tr: "/tr/aiolis-sikkeleri", link_en: "/en/aeolis-coins" },
+        { name: "PONTUS", name_tr: "PONTUS", lat: 40.8, lng: 37.5, desc: "Karadeniz kıyısı, Mithridates'in krallığı", descEn: "Black Sea coast, Kingdom of Mithridates", link_tr: "/tr/pontus-sikkeleri", link_en: "/en/pontus-coins" },
+        { name: "PAPHLAGONIA", name_tr: "PAFLAGONYA", lat: 41.5, lng: 34.0, desc: "Sinop ve Karadeniz limanları", descEn: "Sinope and Black Sea ports", link_tr: "/tr/paflagonya-sikkeleri", link_en: "/en/paphlagonia-coins" }
+    ];
+
+    // 4 Alt Bölge (Diğer Bölgeler kategorisi) - Daha küçük font
+    const subRegions = [
+        { name: "COMMAGENE", name_tr: "KOMMAGENE", lat: 37.9, lng: 38.5, desc: "Nemrut Dağı ve Grek-Pers senkretik kültürü", descEn: "Mount Nemrut and Greco-Persian syncretic culture", link_tr: "/tr/diger-antik-bolgeler-sikkeleri", link_en: "/en/other-ancient-regions-coins" },
+        { name: "ISAURIA", name_tr: "İSAURYA", lat: 37.1, lng: 32.2, desc: "Toros Dağları'nın savaşçı dağlı kabileleri", descEn: "Warrior mountain tribes of the Taurus Mountains", link_tr: "/tr/diger-antik-bolgeler-sikkeleri", link_en: "/en/other-ancient-regions-coins" },
+        { name: "LYCAONIA", name_tr: "LİKAONYA", lat: 37.5, lng: 33.5, desc: "Aziz Pavlus'un misyonerlik yolculukları bölgesi", descEn: "Region of Saint Paul's missionary journeys", link_tr: "/tr/diger-antik-bolgeler-sikkeleri", link_en: "/en/other-ancient-regions-coins" },
+        { name: "SOPHENE", name_tr: "SOFENE", lat: 38.7, lng: 39.5, desc: "Fırat'ın yukarı havzasında Armeno-İrani krallık", descEn: "Armeno-Iranian kingdom in the upper Euphrates basin", link_tr: "/tr/diger-antik-bolgeler-sikkeleri", link_en: "/en/other-ancient-regions-coins" }
+    ];
+    // Önemli Antik Şehirler - Çift Dil Desteği (TR/EN)
+    const majorCities = [
+        { name: "Kyzikos", lat: 40.388, lng: 27.872, desc: "Propontis kıyısında önemli bir ticaret merkezi", descEn: "Important trading center on the Propontis coast" },
+        { name: "Pergamon", lat: 39.133, lng: 27.183, desc: "Attalid Krallığı'nın başkenti", descEn: "Capital of the Attalid Kingdom" },
+        { name: "Assos", lat: 39.490, lng: 26.336, desc: "Antik Yunan filozofları için önemli merkez", descEn: "Important center for ancient Greek philosophers" },
+        { name: "Troia", lat: 39.957, lng: 26.251, desc: "Efsanevi Truva Savaşı'nın yeri", descEn: "Site of the legendary Trojan War" },
+        { name: "Lampsakos", lat: 40.345, lng: 26.688, desc: "Hellespontos kıyısında antik şehir", descEn: "Ancient city on the Hellespont" },
+        { name: "Hadrianoutherai", lat: 39.462, lng: 28.064, desc: "Hadrian tarafından kurulan av merkezi", descEn: "Hunting center founded by Hadrian" },
+        { name: "Nikaia", lat: 40.428, lng: 29.721, desc: "İznik Konsili'ne ev sahipliği yapmış şehir", descEn: "City that hosted the Council of Nicaea" },
+        { name: "Nikomedia", lat: 40.765, lng: 29.917, desc: "Bitinya Krallığı'nın başkenti", descEn: "Capital of the Kingdom of Bithynia" },
+        { name: "Prusa", lat: 40.188, lng: 29.061, desc: "Olympos Dağı eteğinde kurulmuş şehir", descEn: "City founded at the foot of Mount Olympus" },
+        { name: "Kios", lat: 40.428, lng: 29.131, desc: "Propontis kıyısında antik liman şehri", descEn: "Ancient port city on the Propontis" },
+        { name: "Chalkedon", lat: 40.991, lng: 29.025, desc: "Boğaz'ın Asya yakasındaki antik şehir", descEn: "Ancient city on the Asian side of the Bosphorus" },
+        { name: "Herakleia Pontike", lat: 41.285, lng: 31.415, desc: "Karadeniz kıyısında önemli liman", descEn: "Important port on the Black Sea coast" },
+        { name: "Amastris", lat: 41.748, lng: 32.385, desc: "Paflagonya'nın önemli liman şehri", descEn: "Important port city of Paphlagonia" },
+        { name: "Sinope", lat: 42.027, lng: 35.151, desc: "Karadeniz'in en önemli limanı", descEn: "Most important port of the Black Sea" },
+        { name: "Amisos", lat: 41.321, lng: 36.336, desc: "Pontus Krallığı'nın önemli şehri", descEn: "Important city of the Kingdom of Pontus" },
+        { name: "Trapezus", lat: 41.002, lng: 39.716, desc: "İpek Yolu'nun Karadeniz uç noktası", descEn: "Black Sea endpoint of the Silk Road" },
+        { name: "Amasia", lat: 40.655, lng: 35.835, desc: "Pontus krallarının mezar şehri", descEn: "Burial city of Pontic kings" },
+        { name: "Gangra", lat: 40.601, lng: 33.616, desc: "Galatya'nın kuzey sınırındaki şehir", descEn: "City on the northern border of Galatia" },
+        { name: "Komana Pontika", lat: 40.333, lng: 36.933, desc: "Ma tanrıçasına adanmış tapınak şehri", descEn: "Temple city dedicated to goddess Ma" },
+        { name: "Zela", lat: 40.300, lng: 35.883, desc: "Veni, vidi, vici sözünün söylendiği yer", descEn: "Where 'Veni, vidi, vici' was spoken" },
+        { name: "Aizanoi", lat: 39.201, lng: 29.608, desc: "En iyi korunmuş Zeus tapınağına sahip şehir", descEn: "City with the best-preserved Temple of Zeus" },
+        { name: "Kotiaeion", lat: 39.418, lng: 29.985, desc: "Frigya'nın önemli şehirlerinden biri", descEn: "One of the important cities of Phrygia" },
+        { name: "Synnada", lat: 38.835, lng: 31.139, desc: "Mermer ocaklarıyla ünlü Frigya şehri", descEn: "Phrygian city famous for marble quarries" },
+        { name: "Amorium", lat: 39.019, lng: 31.293, desc: "Bizans döneminin önemli askeri merkezi", descEn: "Important military center of the Byzantine era" },
+        { name: "Hierapolis", lat: 37.925, lng: 29.126, desc: "Kutsal şehir ve kaplıca merkezi", descEn: "Sacred city and spa center" },
+        { name: "Laodikeia", lat: 37.835, lng: 29.108, desc: "Yedi Kilise'den biri", descEn: "One of the Seven Churches" },
+        { name: "Kolossai", lat: 37.785, lng: 29.261, desc: "Koloseliler mektubunun yazıldığı şehir", descEn: "City where Epistle to Colossians was written" },
+        { name: "Apameia", lat: 38.517, lng: 30.158, desc: "Frigya'nın önemli ticaret merkezi", descEn: "Important trading center of Phrygia" },
+        { name: "Ankyra", lat: 39.920, lng: 32.854, desc: "Galatya'nın başkenti, günümüz Türkiye'nin başkenti", descEn: "Capital of Galatia, modern capital of Turkey" },
+        { name: "Pessinus", lat: 39.336, lng: 31.577, desc: "Kybele kültünün merkezi", descEn: "Center of the cult of Cybele" },
+        { name: "Tavium", lat: 39.897, lng: 35.178, desc: "Galatya'nın doğu kabilesinin merkezi", descEn: "Center of the eastern tribe of Galatia" },
+        { name: "Gordion", lat: 39.654, lng: 31.975, desc: "Frigya'nın eski başkenti, Gordion Düğümü", descEn: "Ancient capital of Phrygia, Gordian Knot" },
+        { name: "Kaisareia", lat: 38.722, lng: 35.485, desc: "Erciyes Dağı eteğinde antik şehir", descEn: "Ancient city at the foot of Mount Erciyes" },
+        { name: "Tyana", lat: 37.828, lng: 34.571, desc: "Apollonius'un doğum yeri", descEn: "Birthplace of Apollonius" },
+        { name: "Satala", lat: 40.046, lng: 39.638, desc: "Roma lejyonlarının doğu üssü", descEn: "Eastern base of Roman legions" },
+        { name: "Melitene", lat: 38.355, lng: 38.303, desc: "Fırat Nehri yakınında stratejik şehir", descEn: "Strategic city near the Euphrates River" },
+        { name: "Nikopolis", lat: 40.315, lng: 36.965, desc: "Pompeius'un zafer anıtı şehri", descEn: "Pompey's victory monument city" },
+        { name: "Ariaratheia", lat: 39.067, lng: 36.818, desc: "Kapadokya krallarının kurduğu şehir", descEn: "City founded by Cappadocian kings" },
+        { name: "Sardis", lat: 38.488, lng: 28.037, desc: "Lidya Krallığı'nın başkenti, paranın doğum yeri", descEn: "Capital of Lydia, birthplace of coinage" },
+        { name: "Ephesos", lat: 37.941, lng: 27.341, desc: "Artemis Tapınağı'na ev sahipliği yapmış şehir", descEn: "City that hosted the Temple of Artemis" },
+        { name: "Smyrna", lat: 38.419, lng: 27.128, desc: "Ege'nin incisi, önemli liman şehri", descEn: "Pearl of the Aegean, important port city" },
+        { name: "Magnesia ad Sipylum", lat: 38.614, lng: 27.425, desc: "Sipylos Dağı yakınında antik şehir", descEn: "Ancient city near Mount Sipylus" },
+        { name: "Thyatira", lat: 38.920, lng: 27.842, desc: "Yedi Kilise'den biri, tekstil merkezi", descEn: "One of Seven Churches, textile center" },
+        { name: "Philadelphia", lat: 38.353, lng: 28.520, desc: "Yedi Kilise'den biri, kardeş sevgisi şehri", descEn: "One of Seven Churches, city of brotherly love" },
+        { name: "Tralles", lat: 37.842, lng: 27.845, desc: "Maeander vadisindeki önemli şehir", descEn: "Important city in the Maeander valley" },
+        { name: "Miletos", lat: 37.530, lng: 27.278, desc: "Felsefe ve bilimin doğum yeri", descEn: "Birthplace of philosophy and science" },
+        { name: "Halikarnassos", lat: 37.037, lng: 27.426, desc: "Mausoleum'un yeri, Herodotos'un doğum yeri", descEn: "Site of the Mausoleum, birthplace of Herodotus" },
+        { name: "Knidos", lat: 36.685, lng: 27.373, desc: "Aphrodite heykeliyle ünlü şehir", descEn: "City famous for its Aphrodite statue" },
+        { name: "Aphrodisias", lat: 37.709, lng: 28.723, desc: "Heykeltıraşlık okulu ve Aphrodite tapınağı", descEn: "Sculpture school and Temple of Aphrodite" },
+        { name: "Stratonikeia", lat: 37.314, lng: 28.163, desc: "Helenistik dönem şehri", descEn: "Hellenistic period city" },
+        { name: "Mylasa", lat: 37.260, lng: 27.843, desc: "Karya'nın eski başkenti", descEn: "Ancient capital of Caria" },
+        { name: "Iasos", lat: 37.279, lng: 27.585, desc: "Balıkçılıkla ünlü kıyı şehri", descEn: "Coastal city famous for fishing" },
+        { name: "Alabanda", lat: 37.589, lng: 28.026, desc: "Karya'nın önemli yargı merkezi", descEn: "Important judicial center of Caria" },
+        { name: "Xanthos", lat: 36.357, lng: 29.317, desc: "Likya Birliği'nin başkenti", descEn: "Capital of the Lycian League" },
+        { name: "Patara", lat: 36.260, lng: 29.313, desc: "Apollon kehanet merkezi ve önemli liman", descEn: "Oracle of Apollo and important port" },
+        { name: "Myra", lat: 36.259, lng: 29.985, desc: "Aziz Nikolaos'un piskoposluk merkezi", descEn: "Bishopric of Saint Nicholas" },
+        { name: "Phaselis", lat: 36.522, lng: 30.553, desc: "Üç limanlı antik şehir", descEn: "Ancient city with three harbors" },
+        { name: "Telmessos", lat: 36.621, lng: 29.112, desc: "Kaya mezarlarıyla ünlü şehir", descEn: "City famous for rock tombs" },
+        { name: "Tlos", lat: 36.554, lng: 29.420, desc: "Pegasos'un mitolojik evi", descEn: "Mythological home of Pegasus" },
+        { name: "Olympos", lat: 36.393, lng: 30.473, desc: "Yanartaş'a yakın antik şehir", descEn: "Ancient city near the eternal flames" },
+        { name: "Perge", lat: 36.960, lng: 30.852, desc: "Aziz Paulus'un ziyaret ettiği şehir", descEn: "City visited by Saint Paul" },
+        { name: "Side", lat: 36.766, lng: 31.388, desc: "Köle ticaretinin merkezi", descEn: "Center of the slave trade" },
+        { name: "Aspendos", lat: 36.938, lng: 31.173, desc: "En iyi korunmuş Roma tiyatrosu", descEn: "Best-preserved Roman theater" },
+        { name: "Sagalassos", lat: 37.677, lng: 30.519, desc: "Dağ yamacında kurulu iyi korunmuş şehir", descEn: "Well-preserved city on a mountain slope" },
+        { name: "Termessos", lat: 36.985, lng: 30.465, desc: "Büyük İskender'in alamadığı şehir", descEn: "City that Alexander the Great could not conquer" },
+        { name: "Attaleia", lat: 36.884, lng: 30.705, desc: "II. Attalos tarafından kurulan liman şehri", descEn: "Port city founded by Attalus II" },
+        { name: "Selge", lat: 37.228, lng: 31.196, desc: "Toros Dağları'ndaki bağımsız şehir", descEn: "Independent city in the Taurus Mountains" },
+        { name: "Tarsus", lat: 36.916, lng: 34.900, desc: "Aziz Paulus'un doğum yeri", descEn: "Birthplace of Saint Paul" },
+        { name: "Anazarbos", lat: 37.240, lng: 35.903, desc: "Kilikya'nın metropolisi", descEn: "Metropolis of Cilicia" },
+        { name: "Kelenderis", lat: 36.143, lng: 33.325, desc: "Kıbrıs'a en yakın liman", descEn: "Closest port to Cyprus" },
+        { name: "Selinus", lat: 36.269, lng: 32.302, desc: "İmparator Traianus'un öldüğü yer", descEn: "Where Emperor Trajan died" },
+        { name: "Mopsos", lat: 36.953, lng: 35.626, desc: "Mopsuestia olarak da bilinen antik şehir", descEn: "Ancient city also known as Mopsuestia" },
+        { name: "Korakesion", lat: 36.543, lng: 31.999, desc: "Korsanların kale şehri", descEn: "Pirate fortress city" },
+        { name: "Aigeai", lat: 36.797, lng: 35.815, desc: "İskenderun Körfezi'nde liman şehri", descEn: "Port city in the Gulf of Iskenderun" },
+        // Commagene Darphaneleri
+        { name: "Samosata", lat: 37.533, lng: 38.517, desc: "Commagene Krallığı'nın Fırat kıyısındaki başkenti", descEn: "Capital of Commagene Kingdom on the Euphrates" },
+        { name: "Doliche", lat: 37.133, lng: 37.433, desc: "Jüpiter Dolichenus kültüyle ünlü dini merkez", descEn: "Religious center famous for Jupiter Dolichenus cult" },
+        { name: "Germanicia", lat: 37.586, lng: 36.926, desc: "Kapadokya sınırında önemli Roma kenti", descEn: "Important Roman city on the Cappadocian border" },
+        // Isauria Darphaneleri
+        { name: "Isaura", lat: 37.133, lng: 32.200, desc: "İsaurya'nın en önemli kalesi ve merkezi", descEn: "Most important fortress and center of Isauria" },
+        { name: "Germanicopolis", lat: 36.633, lng: 32.900, desc: "Isauria'nın güneyindeki önemli kent", descEn: "Important city in southern Isauria" },
+        { name: "Claudiopolis", lat: 36.650, lng: 33.433, desc: "Stratejik geçiş noktasında yer alan kent", descEn: "City at a strategic crossing point" },
+        // Lycaonia Darphaneleri
+        { name: "Iconium", lat: 37.871, lng: 32.493, desc: "Likaonya'nın en büyük kenti, Roma kolonisi", descEn: "Largest city of Lycaonia, Roman colony" },
+        { name: "Laranda", lat: 37.181, lng: 33.229, desc: "Likaonya'nın güneydeki önemli merkezi", descEn: "Important center in southern Lycaonia" },
+        { name: "Lystra", lat: 37.567, lng: 32.383, desc: "Aziz Pavlus'un ziyaret ettiği Roma kolonisi", descEn: "Roman colony visited by Saint Paul" },
+        { name: "Derbe", lat: 37.367, lng: 33.383, desc: "Aziz Pavlus'un ziyaret ettiği kent", descEn: "City visited by Saint Paul" },
+        // Sophene Darphaneleri
+        { name: "Arsamosata", lat: 38.700, lng: 39.250, desc: "Sophene Krallığı'nın başkenti", descEn: "Capital of the Kingdom of Sophene" },
+        { name: "Amida", lat: 37.910, lng: 40.217, desc: "Dicle Nehri kıyısında stratejik kale", descEn: "Strategic fortress on the Tigris River" },
+        { name: "Carcathiocerta", lat: 38.142, lng: 41.003, desc: "Sophene'nin önemli kenti, günümüz Silvan", descEn: "Important city of Sophene, modern Silvan" },
+        // Pisidya Ek Darphaneleri
+        { name: "Kremna", lat: 37.498, lng: 30.688, desc: "Roma kolonisi, Pamfilya sınırında stratejik şehir", descEn: "Roman colony, strategic city on Pamphylian border" },
+        { name: "Antiocheia", lat: 38.305, lng: 31.187, desc: "Pisidia Antiokheia, Aziz Pavlus'un misyonerlik merkezi", descEn: "Pisidian Antioch, center of Saint Paul missionary journey" },
+        // Ionya Ek Darphaneleri
+        { name: "Kolophon", lat: 38.108, lng: 27.148, desc: "Ion Birliği'nin önemli üyesi, atlı birlikleriyle ünlü", descEn: "Important member of Ionian League, famous for cavalry" },
+        { name: "Klazomenai", lat: 38.361, lng: 26.770, desc: "Ion Birliği üyesi, zeytinyağı ticareti merkezi", descEn: "Ionian League member, olive oil trade center" },
+        { name: "Teos", lat: 38.175, lng: 26.783, desc: "Dionyssos tapınağı ile ünlü liman kenti", descEn: "Port city famous for Temple of Dionysus" },
+        { name: "Priene", lat: 37.659, lng: 27.298, desc: "Hippodamos şehircilik planı ile inşa edilmiş", descEn: "Built according to Hippodamian city plan" },
+        { name: "Erythrai", lat: 38.383, lng: 26.481, desc: "Ion Birliği'nin önemli üyelerinden", descEn: "Important member of Ionian League" },
+        { name: "Lebedos", lat: 38.083, lng: 26.967, desc: "Küçük Ion kenti, Dionyssos kültürü merkezi", descEn: "Small Ionian city, center of Dionysus cult" },
+        { name: "Phokaia", lat: 38.671, lng: 26.754, desc: "Denizci kent, Batı Akdeniz'de koloniler kurdu", descEn: "Seafaring city, established colonies in Western Mediterranean" },
+        { name: "Magnesia ad Maeandrum", lat: 37.850, lng: 27.525, desc: "Menderes Magnesiası, Artemis tapınağı ile ünlü", descEn: "Magnesia on the Maeander, famous for Temple of Artemis" },
+        // Karya Ek Darphaneleri
+        { name: "Kaunos", lat: 36.828, lng: 28.617, desc: "Dalyan kaya mezarları ile ünlü liman kenti", descEn: "Port city famous for rock-cut tombs at Dalyan" },
+        { name: "Keramos", lat: 37.025, lng: 27.792, desc: "Gökova Körfezi'nde antik liman kenti", descEn: "Ancient port city on Gokova Bay" },
+        { name: "Myndos", lat: 37.045, lng: 27.283, desc: "Bodrum yakınında antik liman kenti", descEn: "Ancient port city near Bodrum" },
+        // Likya Ek Darphaneleri
+        { name: "Limyra", lat: 36.353, lng: 30.183, desc: "Likya'nın en eski ve zengin kentlerinden", descEn: "One of the oldest and richest Lycian cities" },
+        { name: "Arykanda", lat: 36.492, lng: 30.050, desc: "Dağ yamacında beş teraslı antik kent", descEn: "Ancient city on five terraces on mountain slope" },
+        { name: "Pinara", lat: 36.490, lng: 29.517, desc: "Kaya mezarları ve tiyatrosuyla önemli Likya kenti", descEn: "Important Lycian city with rock tombs and theater" },
+        // Frigya Ek Darphaneleri
+        { name: "Dorylaeum", lat: 39.783, lng: 30.517, desc: "Eskişehir, stratejik Roma yolu kavşağı", descEn: "Eskisehir, strategic Roman road junction" },
+        { name: "Philomelion", lat: 38.350, lng: 31.933, desc: "Roma dönemine ait önemli Frigya kenti", descEn: "Important Phrygian city of Roman period" },
+        { name: "Akmoneia", lat: 38.467, lng: 29.850, desc: "Roma dönemi sikke basan Frigya kenti", descEn: "Phrygian city minting coins in Roman period" },
+        // Misya Ek Darphaneleri
+        { name: "Parion", lat: 40.417, lng: 27.067, desc: "Çanakkale yakınlarında antik liman kenti", descEn: "Ancient port city near Canakkale" },
+        { name: "Adramytteion", lat: 39.500, lng: 27.017, desc: "Edremit Körfezi'nde önemli liman kenti", descEn: "Important port city on Gulf of Edremit" },
+        { name: "Pitane", lat: 38.933, lng: 27.033, desc: "Çandarlı, antik liman ve ticaret merkezi", descEn: "Candarli, ancient port and trade center" },
+        // Bitinya Ek Darphaneleri
+        { name: "Prusias ad Hypium", lat: 40.800, lng: 31.800, desc: "Düzce Konuralp, Roma dönemi önemli kenti", descEn: "Duzce Konuralp, important city of Roman period" },
+        { name: "Apameia Myrleia", lat: 40.417, lng: 28.867, desc: "Mudanya yakınlarında antik kent", descEn: "Ancient city near Mudanya" },
+        // Pamfilya Ek Darphaneleri
+        { name: "Sillyon", lat: 36.950, lng: 30.800, desc: "Akropolis ve stadyumu ile önemli Pamfilya kenti", descEn: "Important Pamphylian city with acropolis and stadium" },
+        // Kilikya Ek Darphaneleri
+        { name: "Seleukeia", lat: 36.400, lng: 33.933, desc: "Silifke, önemli Helenistik ve Roma kenti", descEn: "Silifke, important Hellenistic and Roman city" },
+        { name: "Soloi", lat: 36.750, lng: 34.533, desc: "Mersin-Viranşehir, liman kenti", descEn: "Mersin-Viransehir, port city" },
+        { name: "Korykos", lat: 36.467, lng: 34.150, desc: "Kızkalesi, deniz kalesiyle ünlü", descEn: "Kizkalesi, famous for sea castle" },
+        { name: "Issos", lat: 36.833, lng: 36.183, desc: "Büyük İskender'in zafer kazandığı yer", descEn: "Site of Alexander the Great victory" },
+        { name: "Mallos", lat: 36.783, lng: 35.600, desc: "Ceyhan yakınında antik liman kenti", descEn: "Ancient port city near Ceyhan" },
+        // Kapadokya Ek Darphaneleri
+        { name: "Komana", lat: 38.417, lng: 36.400, desc: "Ma tanrıçası tapınağı ile ünlü dini merkez", descEn: "Religious center famous for temple of Ma goddess" },
+        // Troas Ek Darphaneleri
+        { name: "Ilion", lat: 39.958, lng: 26.239, desc: "Truva, İlyada'nın efsanevi kenti", descEn: "Troy, legendary city of the Iliad" },
+        { name: "Alexandria Troas", lat: 39.750, lng: 26.150, desc: "Büyük İskender'in kurduğu önemli liman kenti", descEn: "Important port city founded by Alexander the Great" },
+        { name: "Abydos", lat: 40.200, lng: 26.400, desc: "Çanakkale Boğazı'nın stratejik geçiş noktası", descEn: "Strategic crossing point of Dardanelles" },
+        // Pontus Ek Darphaneleri
+        { name: "Kerasous", lat: 40.917, lng: 38.400, desc: "Giresun, kirazın anavatanı", descEn: "Giresun, birthplace of cherry" },
+        { name: "Pharnakeia", lat: 40.917, lng: 37.567, desc: "Fatsa yakınlarında Pontus liman kenti", descEn: "Pontus port city near Fatsa" },
+        // Paflagonya Ek Darphaneleri
+        { name: "Pompeiopolis", lat: 41.467, lng: 33.800, desc: "Taşköprü, Roma dönemi önemli kenti", descEn: "Taskopru, important city of Roman period" },
+        // Aiolis Ek Darphaneleri
+        { name: "Kyme", lat: 38.760, lng: 26.938, desc: "Aiolis'in en büyük ve önemli kenti", descEn: "Largest and most important city of Aeolis" },
+        { name: "Elaia", lat: 38.943, lng: 27.037, desc: "Pergamon'un liman kenti", descEn: "Port city of Pergamon" },
+        { name: "Temnos", lat: 38.817, lng: 27.183, desc: "Gediz vadisinde Aiol kenti", descEn: "Aeolian city in Gediz valley" },
+        { name: "Aigai", lat: 38.883, lng: 27.100, desc: "Aiol Birliği'nin 12 kentinden biri", descEn: "One of 12 cities of Aeolian League" },
+        { name: "Myrina", lat: 38.950, lng: 27.050, desc: "Aliağa yakınlarında Aiol liman kenti", descEn: "Aeolian port city near Aliaga" },
+        { name: "Grynion", lat: 38.900, lng: 27.017, desc: "Apollon tapınağı ile ünlü Aiol kenti", descEn: "Aeolian city famous for Temple of Apollo" }
+    ];
+
+    // Dile göre açıklama seç
+    function getDescription(item) {
+        return isEnglish ? (item.descEn || item.desc) : item.desc;
+    }
+
+    // Dile göre bölge adı seç
+    function getRegionName(item) {
+        return isEnglish ? item.name : (item.name_tr || item.name);
+    }
+
+    // Popup için zoom eşiği (bu seviye ve üstünde popup açılır, altında zoom yapılır)
+    const POPUP_ZOOM_THRESHOLD = 8;
+
+    // 16 Ana Bölge Etiketleri - Düşük zoom'da yakınlaş, yüksek zoom'da popup göster
+    const regionLabels = anatolianRegions.map(region => {
+        const onClickCallback = () => {
+            const currentZoom = map.getZoom();
+            console.log('Region clicked:', region.name, 'Zoom:', currentZoom, 'Threshold:', POPUP_ZOOM_THRESHOLD);
+
+            // Düşük zoom seviyesinde: bölgeye yakınlaş
+            if (currentZoom < POPUP_ZOOM_THRESHOLD) {
+                map.setCenter(new google.maps.LatLng(region.lat, region.lng));
+                map.setZoom(currentZoom + 2); // 2 seviye yakınlaş
+                return;
+            }
+
+            // Yüksek zoom seviyesinde: popup göster
+            console.log('Showing popup for:', region.name);
+            const mapContainer = document.getElementById('google-antik-harita');
+            const projection = map.getProjection();
+            const bounds = map.getBounds();
+            const ne = bounds.getNorthEast();
+            const sw = bounds.getSouthWest();
+
+            const latLng = new google.maps.LatLng(region.lat, region.lng);
+            const point = projection.fromLatLngToPoint(latLng);
+            const nePoint = projection.fromLatLngToPoint(ne);
+            const swPoint = projection.fromLatLngToPoint(sw);
+
+            const scale = mapContainer.offsetWidth / (nePoint.x - swPoint.x);
+            const x = (point.x - swPoint.x) * scale;
+            const y = (point.y - nePoint.y) * scale;
+            console.log('Popup position:', x, y);
+
+            showRegionPopup(region, x, y);
+        };
+        return new MapLabel(new google.maps.LatLng(region.lat, region.lng), getRegionName(region), 'map-region-label', onClickCallback);
+    });
+
+    // 4 Alt Bölge Etiketleri (Diğer Bölgeler) - Aynı mantık: düşük zoom'da yakınlaş, yüksek zoom'da popup
+    const subRegionLabels = subRegions.map(region => {
+        const onClickCallback = (e) => {
+            const currentZoom = map.getZoom();
+
+            // Düşük zoom seviyesinde: bölgeye yakınlaş
+            if (currentZoom < POPUP_ZOOM_THRESHOLD) {
+                map.setCenter(new google.maps.LatLng(region.lat, region.lng));
+                map.setZoom(currentZoom + 2);
+                return;
+            }
+
+            // Yüksek zoom seviyesinde: popup göster
+            const mapContainer = document.getElementById('google-antik-harita');
+            const projection = map.getProjection();
+            const bounds = map.getBounds();
+            const ne = bounds.getNorthEast();
+            const sw = bounds.getSouthWest();
+
+            const latLng = new google.maps.LatLng(region.lat, region.lng);
+            const point = projection.fromLatLngToPoint(latLng);
+            const nePoint = projection.fromLatLngToPoint(ne);
+            const swPoint = projection.fromLatLngToPoint(sw);
+
+            const scale = mapContainer.offsetWidth / (nePoint.x - swPoint.x);
+            const x = (point.x - swPoint.x) * scale;
+            const y = (point.y - nePoint.y) * scale;
+
+            showRegionPopup(region, x, y);
+        };
+        return new MapLabel(new google.maps.LatLng(region.lat, region.lng), getRegionName(region), 'map-subregion-label', onClickCallback);
+    });
+
+    // Şehir Etiketleri
+    const cityLabels = majorCities.map(city => {
+        return new MapLabel(new google.maps.LatLng(city.lat, city.lng), city.name, 'map-city-label', null);
+    });
+
+    // Tüm etiketleri haritaya ekle
+    const allLabels = [...regionLabels, ...subRegionLabels, ...cityLabels];
+    allLabels.forEach(label => label.setMap(map));
+
+    // ZOOM BAZLI HİYERARŞİK GÖSTER/GİZLE MANTIĞI
+    // Zoom 5-6: Sadece 16 ana bölge
+    // Zoom 7: Ana bölgeler + 4 alt bölge
+    // Zoom 8+: Tüm etiketler (bölgeler + şehirler)
+    function toggleStaticLabels() {
+        const currentZoom = map.getZoom();
+
+        // Her zaman 16 ana bölge görünür
+        regionLabels.forEach(label => label.show());
+
+        // Zoom 7+: Alt bölgeler görünür
+        if (currentZoom >= 7) {
+            subRegionLabels.forEach(label => label.show());
+        } else {
+            subRegionLabels.forEach(label => label.hide());
+        }
+
+        // Zoom 8+: Şehirler görünür
+        if (currentZoom >= 8) {
+            cityLabels.forEach(label => label.show());
+        } else {
+            cityLabels.forEach(label => label.hide());
+        }
+    }
+    google.maps.event.addListener(map, 'zoom_changed', toggleStaticLabels);
+    toggleStaticLabels();
+
+    // Haritaya tıklandığında popup'ları kapat
+    map.addListener('click', function() {
+        customInfoWindow.close();
+        regionPopup.style.display = 'none';
+    });
+
+    // Harita hareket ettiğinde veya zoom değiştiğinde bölge popup'ını gizle
+    map.addListener('dragstart', function() {
+        regionPopup.style.display = 'none';
+    });
+    map.addListener('zoom_changed', function() {
+        regionPopup.style.display = 'none';
+    });
+}
+</script>
+
+<script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDU7if8IGPaJQ62hLW-CAaCRv0xHe3c2j4&callback=initGoogleMap"></script>
+<script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+{/numistr}

@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_NUMISTR_TICKER</name>
+    <author>NumisTR</author>
+    <creationDate>2025-11-02</creationDate>
+    <copyright>Copyright (C) 2025 NumisTR. All rights reserved.</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <authorEmail>info@numistr.org</authorEmail>
+    <authorUrl>https://www.numistr.org</authorUrl>
+    <version>1.1.0</version>
+    <description>MOD_NUMISTR_TICKER_XML_DESCRIPTION</description>
+
+    <files>
+        <filename module="mod_numistr_ticker">mod_numistr_ticker.php</filename>
+        <filename>helper.php</filename>
+        <folder>tmpl</folder>
+        <folder>assets</folder>
+        <folder>language</folder>
+    </files>
+
+    <languages>
+        <language tag="en-GB">language/en-GB/mod_numistr_ticker.ini</language>
+        <language tag="en-GB">language/en-GB/mod_numistr_ticker.sys.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_ticker.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_ticker.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic" label="MOD_NUMISTR_TICKER_BASIC_FIELDSET_LABEL">
+
+                <field
+                    name="ticker_category"
+                    type="category"
+                    label="MOD_NUMISTR_TICKER_CATEGORY_LABEL"
+                    description="MOD_NUMISTR_TICKER_CATEGORY_DESC"
+                    extension="com_content"
+                    default=""
+                    required="true"
+                />
+
+                <field
+                    name="region_filter"
+                    type="list"
+                    label="MOD_NUMISTR_TICKER_REGION_FILTER_LABEL"
+                    description="MOD_NUMISTR_TICKER_REGION_FILTER_DESC"
+                    default="all"
+                >
+                    <option value="all">MOD_NUMISTR_TICKER_REGION_ALL</option>
+                    <option value="auto">MOD_NUMISTR_TICKER_REGION_AUTO</option>
+                    <option value="lydia-coins">Lydia</option>
+                    <option value="ionia-coins">Ionia</option>
+                    <option value="phrygia-coins">Phrygia</option>
+                    <option value="mysia-coins">Mysia</option>
+                    <option value="caria-coins">Caria</option>
+                    <option value="lycia-coins">Lycia</option>
+                    <option value="cilicia-coins">Cilicia</option>
+                    <option value="pamphylia-coins">Pamphylia</option>
+                    <option value="pisidia-coins">Pisidia</option>
+                    <option value="galatia-coins">Galatia</option>
+                    <option value="cappadocia-coins">Cappadocia</option>
+                    <option value="bithynia-coins">Bithynia</option>
+                    <option value="troas-coins">Troas</option>
+                    <option value="aeolis-coins">Aeolis</option>
+                    <option value="pontus-coins">Pontus</option>
+                </field>
+
+                <field
+                    name="auto_detect_region"
+                    type="radio"
+                    label="MOD_NUMISTR_TICKER_AUTO_DETECT_LABEL"
+                    description="MOD_NUMISTR_TICKER_AUTO_DETECT_DESC"
+                    default="1"
+                    class="btn-group btn-group-yesno"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                    name="item_count"
+                    type="number"
+                    label="MOD_NUMISTR_TICKER_ITEM_COUNT_LABEL"
+                    description="MOD_NUMISTR_TICKER_ITEM_COUNT_DESC"
+                    default="20"
+                    min="5"
+                    max="100"
+                    step="5"
+                />
+
+                <field
+                    name="randomize"
+                    type="radio"
+                    label="MOD_NUMISTR_TICKER_RANDOMIZE_LABEL"
+                    description="MOD_NUMISTR_TICKER_RANDOMIZE_DESC"
+                    default="1"
+                    class="btn-group btn-group-yesno"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                    name="cache_duration"
+                    type="list"
+                    label="MOD_NUMISTR_TICKER_CACHE_LABEL"
+                    description="MOD_NUMISTR_TICKER_CACHE_DESC"
+                    default="3600"
+                >
+                    <option value="0">MOD_NUMISTR_TICKER_CACHE_NONE</option>
+                    <option value="900">15 minutes</option>
+                    <option value="1800">30 minutes</option>
+                    <option value="3600">1 hour</option>
+                    <option value="7200">2 hours</option>
+                    <option value="14400">4 hours</option>
+                    <option value="86400">24 hours</option>
+                </field>
+
+            </fieldset>
+
+            <fieldset name="appearance" label="MOD_NUMISTR_TICKER_APPEARANCE_FIELDSET_LABEL">
+
+                <field
+                    name="display_format"
+                    type="list"
+                    label="MOD_NUMISTR_TICKER_FORMAT_LABEL"
+                    description="MOD_NUMISTR_TICKER_FORMAT_DESC"
+                    default="single_line"
+                >
+                    <option value="single_line">MOD_NUMISTR_TICKER_FORMAT_SINGLE</option>
+                    <option value="multi_line">MOD_NUMISTR_TICKER_FORMAT_MULTI</option>
+                </field>
+
+                <field
+                    name="fade_interval"
+                    type="number"
+                    label="MOD_NUMISTR_TICKER_FADE_INTERVAL_LABEL"
+                    description="MOD_NUMISTR_TICKER_FADE_INTERVAL_DESC"
+                    default="15"
+                    min="5"
+                    max="60"
+                    step="5"
+                />
+
+                <field
+                    name="show_icon"
+                    type="radio"
+                    label="MOD_NUMISTR_TICKER_SHOW_ICON_LABEL"
+                    description="MOD_NUMISTR_TICKER_SHOW_ICON_DESC"
+                    default="0"
+                    class="btn-group btn-group-yesno"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                    name="show_navigation"
+                    type="radio"
+                    label="MOD_NUMISTR_TICKER_SHOW_NAV_LABEL"
+                    description="MOD_NUMISTR_TICKER_SHOW_NAV_DESC"
+                    default="0"
+                    class="btn-group btn-group-yesno"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                    name="show_dots"
+                    type="radio"
+                    label="MOD_NUMISTR_TICKER_SHOW_DOTS_LABEL"
+                    description="MOD_NUMISTR_TICKER_SHOW_DOTS_DESC"
+                    default="0"
+                    class="btn-group btn-group-yesno"
+                    showon="show_navigation:1"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                    name="pause_on_hover"
+                    type="radio"
+                    label="MOD_NUMISTR_TICKER_PAUSE_HOVER_LABEL"
+                    description="MOD_NUMISTR_TICKER_PAUSE_HOVER_DESC"
+                    default="0"
+                    class="btn-group btn-group-yesno"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
+                    name="moduleclass_sfx"
+                    type="text"
+                    label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+                    description="COM_MODULES_FIELD_MODULECLASS_SFX_DESC"
+                />
+
+            </fieldset>
+
+            <fieldset name="advanced">
+                <field
+                    name="layout"
+                    type="modulelayout"
+                    label="JFIELD_ALT_LAYOUT_LABEL"
+                    description="JFIELD_ALT_MODULE_LAYOUT_DESC"
+                />
+
+                <field
+                    name="moduleclass_sfx"
+                    type="textarea"
+                    label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL"
+                    description="COM_MODULES_FIELD_MODULECLASS_SFX_DESC"
+                    rows="3"
+                />
+
+                <field
+                    name="cache"
+                    type="list"
+                    label="COM_MODULES_FIELD_CACHING_LABEL"
+                    description="COM_MODULES_FIELD_CACHING_DESC"
+                    default="1"
+                >
+                    <option value="1">JGLOBAL_USE_GLOBAL</option>
+                    <option value="0">COM_MODULES_FIELD_VALUE_NOCACHING</option>
+                </field>
+
+                <field
+                    name="cache_time"
+                    type="number"
+                    label="COM_MODULES_FIELD_CACHE_TIME_LABEL"
+                    description="COM_MODULES_FIELD_CACHE_TIME_DESC"
+                    default="900"
+                />
+
+                <field
+                    name="cachemode"
+                    type="hidden"
+                    default="static"
+                >
+                    <option value="static"></option>
+                </field>
+            </fieldset>
+        </fields>
+    </config>
+</extension>
