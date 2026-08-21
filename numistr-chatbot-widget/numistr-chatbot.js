@@ -1,29 +1,86 @@
 /**
- * NumisTR AI Chatbot Widget
- * Antik Anadolu sikkeleri hakkında sorularınızı yanıtlar
+ * NumisTR AI Asistan Widget v2 (ADR-003 Faz 1)
+ * Backend: /api/index.php/v1/assistant/chat (same-origin, anonymous cookie identity)
  *
- * Kullanım: Sayfanın sonuna bu scripti ekleyin
- * <script src="path/to/numistr-chatbot.js"></script>
+ * Kullanım: Sayfanın sonuna bu scripti ekleyin (yalnız numistr.org üzerinde çalışır)
+ * <script src="/media/numistr-chatbot/numistr-chatbot.js" defer></script>
  */
 
 (function() {
     'use strict';
 
-    // Configuration
+    // ------------------------------------------------------------------
+    // Configuration (v2 — NumisTR AI Asistan, ADR-003 Faz 1)
+    // Backend: same-origin Joomla plugin /v1/assistant/* (anonymous identity via
+    // the nt_aid cookie, SameSite=Lax -> the widget MUST run on numistr.org).
+    // ------------------------------------------------------------------
     const CONFIG = {
-        apiUrl: 'https://n8n.aetelekom.com/webhook/numistr-kb-query',
-        widgetTitle: 'NumisTR Asistan',
-        placeholder: 'Antik sikkeler hakkında soru sorun...',
-        welcomeMessage: 'Merhaba! Ben NumisTR AI asistanıyım. Antik Anadolu sikkeleri, darphaneler ve tarih hakkında sorularınızı yanıtlayabilirim.',
-        errorMessage: 'Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.',
-        thinkingMessage: 'Düşünüyorum...',
+        apiBase: '/api/index.php/v1/assistant',
         primaryColor: '#8B4513', // Saddle brown - antik tema
         secondaryColor: '#D4AF37', // Gold
-        position: 'bottom-right' // bottom-right, bottom-left
+        position: 'bottom-right', // bottom-right, bottom-left
+        storageKey: 'numistr_assistant_conv', // localStorage: { tr: id, en: id }
+        restoreHistory: true
     };
 
-    // Generate unique session ID
-    const sessionId = 'web_' + Math.random().toString(36).substring(2, 15);
+    const I18N = {
+        tr: {
+            title: 'NumisTR Asistan',
+            subtitle: 'Antik Anadolu Sikkeleri',
+            placeholder: 'Sikkeler, darphaneler, yerleşimler...',
+            welcome: 'Merhaba! Antik Anadolu sikkeleri, darphaneler, antik yerleşimler ve numizmatik terimler hakkında soru sorabilirsiniz.',
+            error: 'Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.',
+            thinking: 'Düşünüyorum...',
+            sources: 'Kaynaklar',
+            cta: 'Ücretsiz üye ol',
+            remaining: 'Bugün kalan: {n}',
+            newChat: 'Yeni sohbet',
+            send: 'Gönder',
+            open: 'Asistanı aç'
+        },
+        en: {
+            title: 'NumisTR Assistant',
+            subtitle: 'Ancient Anatolian Coins',
+            placeholder: 'Coins, mints, settlements...',
+            welcome: 'Hello! Ask me about ancient Anatolian coins, mints, ancient settlements and numismatic terms.',
+            error: 'Sorry, something went wrong. Please try again.',
+            thinking: 'Thinking...',
+            sources: 'Sources',
+            cta: 'Register for free',
+            remaining: 'Left today: {n}',
+            newChat: 'New chat',
+            send: 'Send',
+            open: 'Open assistant'
+        }
+    };
+
+    // Language: <html lang> first, then URL prefix, default tr
+    const LANG = (function () {
+        const htmlLang = (document.documentElement.getAttribute('lang') || '').toLowerCase();
+        if (htmlLang.indexOf('en') === 0) return 'en';
+        if (htmlLang.indexOf('tr') === 0) return 'tr';
+        return /^\/en(\/|$)/.test(window.location.pathname) ? 'en' : 'tr';
+    })();
+    const T = I18N[LANG];
+
+    // Conversation id persistence (per language)
+    function loadConvId() {
+        try {
+            const raw = window.localStorage.getItem(CONFIG.storageKey);
+            const obj = raw ? JSON.parse(raw) : {};
+            return obj && obj[LANG] ? parseInt(obj[LANG], 10) || null : null;
+        } catch (e) { return null; }
+    }
+    function saveConvId(id) {
+        try {
+            const raw = window.localStorage.getItem(CONFIG.storageKey);
+            const obj = raw ? JSON.parse(raw) : {};
+            if (id) { obj[LANG] = id; } else { delete obj[LANG]; }
+            window.localStorage.setItem(CONFIG.storageKey, JSON.stringify(obj));
+        } catch (e) { /* storage disabled */ }
+    }
+    let conversationId = loadConvId();
+    let historyRestored = false;
 
     // Create widget HTML
     function createWidget() {
@@ -288,6 +345,52 @@
                         height: 56px;
                     }
                 }
+
+                #numistr-chat-new {
+                    margin-left: auto;
+                    background: rgba(255,255,255,0.18);
+                    color: #fff;
+                    border: none;
+                    border-radius: 50%;
+                    width: 28px;
+                    height: 28px;
+                    font-size: 18px;
+                    line-height: 1;
+                    cursor: pointer;
+                }
+                #numistr-chat-new:hover { background: rgba(255,255,255,0.32); }
+                #numistr-chat-footer {
+                    font-size: 11px;
+                    color: #777;
+                    padding: 2px 14px 6px;
+                    min-height: 14px;
+                    text-align: right;
+                }
+                .numistr-message .bubble a { color: ${CONFIG.primaryColor}; text-decoration: underline; word-break: break-word; }
+                .numistr-message.user .bubble a { color: #fff; }
+                .numistr-message .bubble p { margin: 0 0 6px; }
+                .numistr-message .bubble p:last-child { margin-bottom: 0; }
+                .numistr-sources {
+                    margin-top: 6px;
+                    padding-top: 6px;
+                    border-top: 1px solid rgba(0,0,0,0.08);
+                    font-size: 12px;
+                }
+                .numistr-sources .label { font-weight: 600; color: #555; margin-bottom: 2px; }
+                .numistr-sources a { display: block; color: ${CONFIG.primaryColor}; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                .numistr-sources a:hover { text-decoration: underline; }
+                .numistr-cta {
+                    display: inline-block;
+                    margin-top: 8px;
+                    padding: 6px 12px;
+                    border-radius: 16px;
+                    background: ${CONFIG.secondaryColor};
+                    color: #222 !important;
+                    font-weight: 600;
+                    text-decoration: none !important;
+                    font-size: 12px;
+                }
+                .numistr-cta:hover { filter: brightness(1.05); }
             </style>
 
             <button id="numistr-chat-button" aria-label="Sohbet aç">
@@ -307,16 +410,18 @@
                         </svg>
                     </div>
                     <div>
-                        <div class="title">${CONFIG.widgetTitle}</div>
-                        <div class="subtitle">Antik Anadolu Sikkeleri Uzmanı</div>
+                        <div class="title">${T.title}</div>
+                        <div class="subtitle">${T.subtitle}</div>
                     </div>
+                    <button id="numistr-chat-new" type="button" title="${T.newChat}" aria-label="${T.newChat}">+</button>
                 </div>
 
-                <div id="numistr-chat-messages"></div>
+                <div id="numistr-chat-messages" aria-live="polite"></div>
+                <div id="numistr-chat-footer"></div>
 
                 <div id="numistr-chat-input-container">
-                    <input type="text" id="numistr-chat-input" placeholder="${CONFIG.placeholder}" />
-                    <button id="numistr-chat-send" aria-label="Gönder">
+                    <input type="text" id="numistr-chat-input" placeholder="${T.placeholder}" maxlength="1500" autocomplete="off" />
+                    <button id="numistr-chat-send" aria-label="${T.send}">
                         <svg viewBox="0 0 24 24">
                             <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
                         </svg>
@@ -335,15 +440,20 @@
         const panel = document.getElementById('numistr-chat-panel');
         const input = document.getElementById('numistr-chat-input');
         const sendBtn = document.getElementById('numistr-chat-send');
+        const newBtn = document.getElementById('numistr-chat-new');
         const messages = document.getElementById('numistr-chat-messages');
+        const footer = document.getElementById('numistr-chat-footer');
+
+        button.setAttribute('aria-label', T.open);
 
         // Toggle chat panel
         button.addEventListener('click', function() {
             const isOpen = panel.classList.toggle('open');
             button.classList.toggle('open', isOpen);
 
-            if (isOpen && messages.children.length === 0) {
-                addMessage(CONFIG.welcomeMessage, 'bot');
+            if (isOpen && !historyRestored) {
+                historyRestored = true;
+                restoreHistory();
             }
 
             if (isOpen) {
@@ -351,10 +461,17 @@
             }
         });
 
-        // Send message on button click
+        newBtn.addEventListener('click', function() {
+            conversationId = null;
+            saveConvId(null);
+            messages.innerHTML = '';
+            footer.textContent = '';
+            addMessage(T.welcome, 'bot');
+            input.focus();
+        });
+
         sendBtn.addEventListener('click', sendMessage);
 
-        // Send message on Enter key
         input.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -362,65 +479,124 @@
             }
         });
 
+        async function restoreHistory() {
+            if (CONFIG.restoreHistory && conversationId) {
+                try {
+                    const r = await fetch(CONFIG.apiBase + '/conversations/' + conversationId, {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        headers: { 'Accept': 'application/json' }
+                    });
+
+                    if (r.ok) {
+                        const data = await r.json();
+                        const list = Array.isArray(data.messages) ? data.messages : [];
+
+                        if (list.length) {
+                            addMessage(T.welcome, 'bot');
+                            list.forEach(function(m) {
+                                if (m.role === 'user' || m.role === 'assistant') {
+                                    addMessage(m.content || '', m.role === 'user' ? 'user' : 'bot', null, m.created);
+                                }
+                            });
+                            return;
+                        }
+                    }
+                } catch (e) { /* fall through: start fresh */ }
+
+                // 404 (cookie changed / expired) or error -> forget the id
+                conversationId = null;
+                saveConvId(null);
+            }
+
+            if (messages.children.length === 0) {
+                addMessage(T.welcome, 'bot');
+            }
+        }
+
         async function sendMessage() {
             const query = input.value.trim();
-            if (!query) return;
+            if (!query || sendBtn.disabled) return;
 
-            // Add user message
             addMessage(query, 'user');
             input.value = '';
             sendBtn.disabled = true;
 
-            // Show thinking indicator
             const thinkingId = addThinkingIndicator();
 
             try {
-                const response = await fetch(CONFIG.apiUrl, {
+                const response = await fetch(CONFIG.apiBase + '/chat', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
-                        query: query,
-                        session_id: sessionId
+                        message: query,
+                        lang: LANG,
+                        conversation_id: conversationId
                     })
                 });
 
-                if (!response.ok) {
-                    throw new Error('API error');
+                let data = null;
+                try { data = await response.json(); } catch (e) { data = null; }
+
+                removeThinkingIndicator(thinkingId);
+
+                if (!response.ok || !data) {
+                    const detail = data && data.errors && data.errors[0] && (data.errors[0].detail || data.errors[0].title);
+                    addMessage(detail || T.error, 'bot');
+                } else {
+                    if (data.conversation_id) {
+                        conversationId = parseInt(data.conversation_id, 10) || conversationId;
+                        saveConvId(conversationId);
+                    }
+
+                    addMessage(data.answer || T.error, 'bot', data);
+
+                    if (data.quota && typeof data.quota.remaining_today === 'number') {
+                        footer.textContent = T.remaining.replace('{n}', data.quota.remaining_today);
+                    }
                 }
-
-                const data = await response.json();
-
-                // Remove thinking indicator
-                removeThinkingIndicator(thinkingId);
-
-                // Add bot response
-                addMessage(data.answer || CONFIG.errorMessage, 'bot');
-
             } catch (error) {
-                console.error('NumisTR Chatbot Error:', error);
+                console.error('NumisTR Assistant Error:', error);
                 removeThinkingIndicator(thinkingId);
-                addMessage(CONFIG.errorMessage, 'bot');
+                addMessage(T.error, 'bot');
             }
 
             sendBtn.disabled = false;
             input.focus();
         }
 
-        function addMessage(text, sender) {
+        function addMessage(text, sender, data, createdAt) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `numistr-message ${sender}`;
 
-            const time = new Date().toLocaleTimeString('tr-TR', {
+            const when = createdAt ? new Date(String(createdAt).replace(' ', 'T')) : new Date();
+            const time = (isNaN(when.getTime()) ? new Date() : when).toLocaleTimeString(LANG === 'en' ? 'en-GB' : 'tr-TR', {
                 hour: '2-digit',
                 minute: '2-digit'
             });
 
-            messageDiv.innerHTML = `
-                <div class="bubble">${escapeHtml(text)}</div>
-                <div class="time">${time}</div>
-            `;
+            let extra = '';
+
+            if (data && Array.isArray(data.sources) && data.sources.length) {
+                extra += '<div class="numistr-sources"><div class="label">' + escapeHtml(T.sources) + '</div>';
+                data.sources.slice(0, 5).forEach(function(s) {
+                    if (s && s.url) {
+                        extra += '<a href="' + escapeAttr(s.url) + '" target="_blank" rel="noopener">' + escapeHtml(s.title || s.url) + '</a>';
+                    }
+                });
+                extra += '</div>';
+            }
+
+            if (data && data.cta && data.cta.url) {
+                extra += '<a class="numistr-cta" href="' + escapeAttr(data.cta.url) + '">' + escapeHtml(T.cta) + '</a>';
+            }
+
+            const body = sender === 'bot' ? renderMarkdown(text) : escapeHtml(text).replace(/\n/g, '<br>');
+            messageDiv.innerHTML = '<div class="bubble">' + body + extra + '</div><div class="time">' + time + '</div>';
 
             messages.appendChild(messageDiv);
             messages.scrollTop = messages.scrollHeight;
@@ -438,7 +614,7 @@
                         <span></span>
                         <span></span>
                     </div>
-                    <span>${CONFIG.thinkingMessage}</span>
+                    <span>${T.thinking}</span>
                 </div>
             `;
             messages.appendChild(messageDiv);
@@ -455,8 +631,40 @@
 
         function escapeHtml(text) {
             const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML.replace(/\n/g, '<br>');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
+        function escapeAttr(text) {
+            return escapeHtml(text).replace(/"/g, '&quot;');
+        }
+
+        // Minimal, safe markdown: escape first, then [text](url), bare URLs, **bold**, lists, paragraphs.
+        function renderMarkdown(text) {
+            let html = escapeHtml(text);
+
+            html = html.replace(/\[([^\]]{1,200})\]\((https?:\/\/[^\s)]+)\)/g, function(m, label, url) {
+                return '<a href="' + url.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener">' + label + '</a>';
+            });
+            html = html.replace(/(^|[\s(])(https?:\/\/[^\s<)]*[^\s<).,;:!?])/g, function(m, pre, url) {
+                return pre + '<a href="' + url.replace(/"/g, '&quot;') + '" target="_blank" rel="noopener">' + url + '</a>';
+            });
+            html = html.replace(/\*\*([^*\n]{1,200})\*\*/g, '<strong>$1</strong>');
+
+            const paras = html.split(/\n{2,}/).map(function(p) {
+                const lines = p.split('\n');
+                const isList = lines.length > 0 && lines.every(function(l) { return /^\s*([-*\u2022]|\d+[.)])\s+/.test(l); });
+
+                if (isList) {
+                    return '<ul style="margin:0 0 6px 18px;padding:0">' + lines.map(function(l) {
+                        return '<li>' + l.replace(/^\s*([-*\u2022]|\d+[.)])\s+/, '') + '</li>';
+                    }).join('') + '</ul>';
+                }
+
+                return '<p>' + lines.join('<br>') + '</p>';
+            });
+
+            return paras.join('');
         }
     }
 

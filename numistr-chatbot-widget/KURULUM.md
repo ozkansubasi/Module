@@ -43,23 +43,26 @@ Sonuç: `https://www.numistr.org/media/numistr-chatbot/numistr-chatbot.js`
 
 ---
 
+## v2 (2026-08-21) — Backend değişti
+
+Widget artık n8n webhook'una DEĞİL, aynı origin'deki Joomla plugin ucuna konuşur:
+`POST /api/index.php/v1/assistant/chat` (ADR-003 Faz 1). n8n `numistr-kb-query` webhook'u
+artık `X-NumisTR-KB` başlığı ister; tarayıcıdan doğrudan çağrılamaz.
+
+- Anonim kimlik: `nt_aid` cookie (HttpOnly, SameSite=Lax) → widget **yalnız numistr.org** üzerinde çalışır.
+- Dil: `<html lang>` (tr-TR / en-GB), yoksa `/en/` URL öneki.
+- `conversation_id` localStorage'da (`numistr_assistant_conv`, dile göre); panel açılınca geçmiş
+  `GET /v1/assistant/conversations/{id}` ile geri yüklenir (404 → sıfırdan başlar). "+" = yeni sohbet.
+- Cevapta `sources[]` link listesi, `cta.register` düğmesi, `quota.remaining_today` alt bilgisi gösterilir.
+- Markdown: **kalın**, [link](url), çıplak URL, listeler — HTML her zaman önce escape edilir.
+
+Güncelleme: yalnız `public_html/media/numistr-chatbot/numistr-chatbot.js` dosyasını üzerine yaz
+(tarayıcı cache'i için sürüm parametresi: `numistr-chatbot.js?v=2`).
+
 ## Özelleştirme
 
-Widget'ı özelleştirmek için `numistr-chatbot.js` dosyasının başındaki CONFIG nesnesini düzenleyin:
-
-```javascript
-const CONFIG = {
-    apiUrl: 'https://n8n.aetelekom.com/webhook/numistr-kb-query',  // API endpoint
-    widgetTitle: 'NumisTR Asistan',        // Başlık
-    placeholder: 'Soru sorun...',          // Input placeholder
-    welcomeMessage: 'Merhaba! ...',        // Karşılama mesajı
-    primaryColor: '#8B4513',               // Ana renk
-    secondaryColor: '#D4AF37',             // İkincil renk (gold)
-    position: 'bottom-right'               // 'bottom-right' veya 'bottom-left'
-};
-```
-
----
+`numistr-chatbot.js` başındaki `CONFIG` (apiBase, renkler, konum, storageKey, restoreHistory) ve
+`I18N` (tr/en metinler) nesnelerini düzenleyin.
 
 ## Sadece Belirli Sayfalarda Gösterme
 
