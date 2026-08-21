@@ -2,21 +2,24 @@
 <extension type="module" client="site" method="upgrade">
     <name>MOD_NUMISTR_CHAT</name>
     <author>NumisTR</author>
-    <creationDate>November 2025</creationDate>
-    <copyright>Copyright (C) 2025 NumisTR. All rights reserved.</copyright>
+    <creationDate>August 2026</creationDate>
+    <copyright>Copyright (C) 2025-2026 NumisTR. All rights reserved.</copyright>
     <license>GNU General Public License version 2 or later</license>
     <authorEmail>info@numistr.org</authorEmail>
     <authorUrl>https://www.numistr.org</authorUrl>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <description>MOD_NUMISTR_CHAT_XML_DESCRIPTION</description>
-
-    <namespace path="src">Joomla\Module\NumistrChat</namespace>
 
     <files>
         <filename module="mod_numistr_chat">mod_numistr_chat.php</filename>
         <folder>tmpl</folder>
         <folder>language</folder>
     </files>
+
+    <media destination="mod_numistr_chat" folder="media">
+        <folder>js</folder>
+        <filename>index.html</filename>
+    </media>
 
     <languages>
         <language tag="en-GB">language/en-GB/mod_numistr_chat.ini</language>
@@ -29,20 +32,11 @@
         <fields name="params">
             <fieldset name="basic">
                 <field
-                    name="whatsapp_number"
+                    name="api_base"
                     type="text"
-                    label="MOD_NUMISTR_CHAT_WHATSAPP_NUMBER_LABEL"
-                    description="MOD_NUMISTR_CHAT_WHATSAPP_NUMBER_DESC"
-                    default="+905551234567"
-                    required="true"
-                />
-
-                <field
-                    name="rag_endpoint"
-                    type="text"
-                    label="MOD_NUMISTR_CHAT_RAG_ENDPOINT_LABEL"
-                    description="MOD_NUMISTR_CHAT_RAG_ENDPOINT_DESC"
-                    default="https://n8n.aetelekom.com/webhook/chat"
+                    label="MOD_NUMISTR_CHAT_API_BASE_LABEL"
+                    description="MOD_NUMISTR_CHAT_API_BASE_DESC"
+                    default="/api/index.php/v1/assistant"
                     required="true"
                 />
 
@@ -55,8 +49,6 @@
                 >
                     <option value="bottom-right">MOD_NUMISTR_CHAT_POSITION_BOTTOM_RIGHT</option>
                     <option value="bottom-left">MOD_NUMISTR_CHAT_POSITION_BOTTOM_LEFT</option>
-                    <option value="top-right">MOD_NUMISTR_CHAT_POSITION_TOP_RIGHT</option>
-                    <option value="top-left">MOD_NUMISTR_CHAT_POSITION_TOP_LEFT</option>
                 </field>
 
                 <field
@@ -64,18 +56,27 @@
                     type="color"
                     label="MOD_NUMISTR_CHAT_COLOR_LABEL"
                     description="MOD_NUMISTR_CHAT_COLOR_DESC"
-                    default="#25d366"
+                    default="#8B4513"
                 />
 
                 <field
-                    name="language"
-                    type="list"
-                    label="MOD_NUMISTR_CHAT_LANGUAGE_LABEL"
-                    description="MOD_NUMISTR_CHAT_LANGUAGE_DESC"
-                    default="tr"
+                    name="secondary_color"
+                    type="color"
+                    label="MOD_NUMISTR_CHAT_COLOR2_LABEL"
+                    description="MOD_NUMISTR_CHAT_COLOR2_DESC"
+                    default="#D4AF37"
+                />
+
+                <field
+                    name="restore_history"
+                    type="radio"
+                    layout="joomla.form.field.radio.switcher"
+                    label="MOD_NUMISTR_CHAT_RESTORE_LABEL"
+                    description="MOD_NUMISTR_CHAT_RESTORE_DESC"
+                    default="1"
                 >
-                    <option value="tr">Türkçe</option>
-                    <option value="en">English</option>
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
                 </field>
             </fieldset>
 
