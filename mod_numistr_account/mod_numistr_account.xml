@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_NUMISTR_ACCOUNT</name>
+    <author>NumisTR</author>
+    <creationDate>August 2026</creationDate>
+    <copyright>Copyright (C) 2026 NumisTR. All rights reserved.</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <authorEmail>info@numistr.org</authorEmail>
+    <authorUrl>https://www.numistr.org</authorUrl>
+    <version>1.0.0</version>
+    <description>MOD_NUMISTR_ACCOUNT_XML_DESCRIPTION</description>
+    <files>
+        <filename module="mod_numistr_account">mod_numistr_account.php</filename>
+        <folder>tmpl</folder>
+        <folder>language</folder>
+    </files>
+    <languages>
+        <language tag="en-GB">language/en-GB/mod_numistr_account.ini</language>
+        <language tag="en-GB">language/en-GB/mod_numistr_account.sys.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_account.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_account.sys.ini</language>
+    </languages>
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field name="mode" type="list" label="MOD_NUMISTR_ACCOUNT_MODE_LABEL" description="MOD_NUMISTR_ACCOUNT_MODE_DESC" default="page">
+                    <option value="page">MOD_NUMISTR_ACCOUNT_MODE_PAGE</option>
+                    <option value="navbar">MOD_NUMISTR_ACCOUNT_MODE_NAVBAR</option>
+                </field>
+                <field name="pro_group_id" type="number" label="MOD_NUMISTR_ACCOUNT_PRO_GROUP_LABEL" default="10" />
+                <field name="plans_tr" type="text" label="MOD_NUMISTR_ACCOUNT_PLANS_TR_LABEL" default="/tr/abonelikler" />
+                <field name="plans_en" type="text" label="MOD_NUMISTR_ACCOUNT_PLANS_EN_LABEL" default="/en/plans" />
+                <field name="account_tr" type="text" label="MOD_NUMISTR_ACCOUNT_ACCOUNT_TR_LABEL" default="/tr/hesabim" />
+                <field name="account_en" type="text" label="MOD_NUMISTR_ACCOUNT_ACCOUNT_EN_LABEL" default="/en/my-account" />
+                <field name="pro_buy_url" type="text" label="MOD_NUMISTR_ACCOUNT_PRO_BUY_LABEL" description="MOD_NUMISTR_ACCOUNT_PRO_BUY_DESC" default="" />
+            </fieldset>
+            <fieldset name="advanced">
+                <field name="cache" type="list" label="COM_MODULES_FIELD_CACHING_LABEL" default="0">
+                    <option value="1">JGLOBAL_USE_GLOBAL</option>
+                    <option value="0">COM_MODULES_FIELD_VALUE_NOCACHING</option>
+                </field>
+                <field name="moduleclass_sfx" type="textarea" label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL" rows="3" />
+            </fieldset>
+        </fields>
+    </config>
+</extension>
