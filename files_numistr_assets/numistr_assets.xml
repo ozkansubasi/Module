@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="file" method="upgrade">
+    <name>files_numistr_assets</name>
+    <author>NumisTR</author>
+    <creationDate>August 2026</creationDate>
+    <copyright>Copyright (C) 2026 NumisTR. All rights reserved.</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <authorEmail>info@numistr.org</authorEmail>
+    <authorUrl>https://www.numistr.org</authorUrl>
+    <version>1.0.0</version>
+    <description>NumisTR site assets served from /media/numistr/ (payment logos etc.). /images is blocked by the image-protection rewrite, so static marketing assets live here.</description>
+    <fileset>
+        <files folder="media" target="media/numistr">
+            <folder>img</folder>
+            <filename>index.html</filename>
+        </files>
+    </fileset>
+</extension>
