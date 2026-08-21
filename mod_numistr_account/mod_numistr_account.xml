@@ -7,7 +7,7 @@
     <license>GNU General Public License version 2 or later</license>
     <authorEmail>info@numistr.org</authorEmail>
     <authorUrl>https://www.numistr.org</authorUrl>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <description>MOD_NUMISTR_ACCOUNT_XML_DESCRIPTION</description>
     <files>
         <filename module="mod_numistr_account">mod_numistr_account.php</filename>
@@ -33,6 +33,10 @@
                 <field name="account_tr" type="text" label="MOD_NUMISTR_ACCOUNT_ACCOUNT_TR_LABEL" default="/tr/hesabim" />
                 <field name="account_en" type="text" label="MOD_NUMISTR_ACCOUNT_ACCOUNT_EN_LABEL" default="/en/my-account" />
                 <field name="pro_buy_url" type="text" label="MOD_NUMISTR_ACCOUNT_PRO_BUY_LABEL" description="MOD_NUMISTR_ACCOUNT_PRO_BUY_DESC" default="" />
+                <field name="free_scan_limit" type="number" label="MOD_NUMISTR_ACCOUNT_FREE_LIMIT_LABEL" default="10" />
+                <field name="play_url" type="text" label="MOD_NUMISTR_ACCOUNT_PLAY_LABEL" default="https://play.google.com/store/apps/details?id=com.anatoliancoins.app" />
+                <field name="appstore_url" type="text" label="MOD_NUMISTR_ACCOUNT_APPSTORE_LABEL" description="MOD_NUMISTR_ACCOUNT_APPSTORE_DESC" default="" />
+                <field name="support_email" type="text" label="MOD_NUMISTR_ACCOUNT_SUPPORT_LABEL" default="bilgi@numistr.org" />
             </fieldset>
             <fieldset name="advanced">
                 <field name="cache" type="list" label="COM_MODULES_FIELD_CACHING_LABEL" default="0">
