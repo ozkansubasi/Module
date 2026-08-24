@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Account Module
  * @subpackage  mod_numistr_account
- * @version     1.1.0
+ * @version     1.2.0
  * @copyright   Copyright (C) 2026 NumisTR. All rights reserved.
  * @license     GNU General Public License version 2 or later
  *
@@ -11,7 +11,8 @@
  *
  * Veri kaynakları (hepsi opsiyonel; tablo yoksa blok gizlenir):
  *   numistr_auth_identities (giriş yöntemi), numistr_scan_quota (aylık tarama),
- *   numistr_billing_events (mağaza aboneliği: ürün, bitiş, kaynak).
+ *   numistr_billing_events (mağaza aboneliği: ürün, bitiş, kaynak),
+ *   numistr_subscriptions (iyzico web aboneliği — ADR-004; varsa kaynak olarak önceliklidir).
  */
 
 defined('_JEXEC') or die;
@@ -56,6 +57,13 @@ $urls = [
     'support'  => 'mailto:' . (string) $params->get('support_email', 'bilgi@numistr.org'),
 ];
 
+// iyzico web aboneliği uçları (plg_system_numistrbilling, ADR-004)
+$billingBase = Uri::root(true) . '/index.php?option=com_ajax&plugin=numistrbilling&format=raw';
+$urls['checkout_monthly'] = $billingBase . '&task=checkout&plan=monthly';
+$urls['checkout_yearly']  = $billingBase . '&task=checkout&plan=yearly';
+$urls['web_cancel']       = $billingBase . '&task=cancel';
+$urls['web_cardupdate']   = $billingBase . '&task=cardupdate';
+
 // ----------------------------------------------------------------------
 // Account facts (all best-effort)
 // ----------------------------------------------------------------------
@@ -68,6 +76,7 @@ $facts = [
     'sub_product'  => null,   // monthly | yearly | raw product id
     'sub_expires'  => null,   // Y-m-d
     'sub_status'   => null,   // 'active' | 'expired' | 'cancelled'
+    'web_active'   => false,  // iyzico aboneliği ACTIVE mi (iptal/kart butonları için)
 ];
 
 if ($isLoggedIn) {
@@ -113,7 +122,42 @@ if ($isLoggedIn) {
     } catch (\Throwable $e) {
     }
 
+    // iyzico web aboneliği (numistr_subscriptions) — bulunursa kaynak olarak ÖNCELİKLİ
     try {
+        $q = $db->getQuery(true)
+            ->select([$db->quoteName('plan'), $db->quoteName('status'), $db->quoteName('current_period_end'), $db->quoteName('canceled_at')])
+            ->from($db->quoteName('numistr_subscriptions'))
+            ->where($db->quoteName('user_id') . ' = ' . (int) $user->id)
+            ->where($db->quoteName('source') . ' = ' . $db->quote('iyzico'))
+            ->order($db->quoteName('id') . ' DESC')
+            ->setLimit(1);
+        $db->setQuery($q);
+        $ws = $db->loadAssoc();
+
+        if ($ws) {
+            $st       = strtoupper((string) $ws['status']);
+            $pend     = !empty($ws['current_period_end']) ? substr((string) $ws['current_period_end'], 0, 10) : null;
+            $inPeriod = $pend === null || strtotime($pend . ' 23:59:59') >= time();
+
+            // Süresi çoktan bitmiş eski kayıtlar kaynak seçimini ele geçirmesin
+            if ($st === 'ACTIVE' || $inPeriod) {
+                $facts['sub_source']  = 'web';
+                $facts['sub_product'] = in_array($ws['plan'], ['monthly', 'yearly'], true) ? $ws['plan'] : null;
+                $facts['sub_expires'] = $pend;
+                $facts['sub_status']  = $st === 'ACTIVE' ? 'active'
+                    : ($st === 'CANCELED' ? 'cancelled' : 'expired');
+                $facts['web_active']  = $st === 'ACTIVE';
+            }
+        }
+    } catch (\Throwable $e) {
+        // tablo henüz yoksa sessizce geç (plugin deploy edilmemiş olabilir)
+    }
+
+    try {
+        if ($facts['sub_source'] === 'web') {
+            throw new \RuntimeException('web subscription wins'); // RC fallback'ini atla
+        }
+
         $q = $db->getQuery(true)
             ->select([$db->quoteName('event_type'), $db->quoteName('product_id'), $db->quoteName('action'), $db->quoteName('expires_at'), $db->quoteName('payload')])
             ->from($db->quoteName('numistr_billing_events'))
@@ -157,6 +201,8 @@ $t = $lang === 'en' ? [
     'period' => 'Period', 'p_monthly' => 'Monthly', 'p_yearly' => 'Yearly', 'renews' => 'Renews / expires', 'status' => 'Status',
     'st_active' => 'Active', 'st_expired' => 'Expired', 'st_cancelled' => 'Cancelled (until period end)',
     'manage_play' => 'Manage on Google Play', 'manage_apple' => 'Manage on App Store', 'manage_web' => 'Manage subscription',
+    'web_card' => 'Update card', 'web_cancel' => 'Cancel subscription',
+    'web_cancel_confirm' => 'Your subscription will be cancelled; PRO access continues until the end of the paid period. Continue?',
     'usage' => 'Usage this month', 'scans' => 'AI coin scans', 'unlimited' => 'Unlimited', 'of' => 'of', 'scans_hint' => 'Resets on the 1st of each month.',
     'app' => 'AnatolianCoins app', 'app_desc' => 'Sign in to the app with the same e-mail to use PRO features on your phone.',
     'get_play' => 'Get it on Google Play', 'get_apple' => 'Download on the App Store', 'support' => 'Contact support',
@@ -174,6 +220,8 @@ $t = $lang === 'en' ? [
     'period' => 'Dönem', 'p_monthly' => 'Aylık', 'p_yearly' => 'Yıllık', 'renews' => 'Yenileme / bitiş', 'status' => 'Durum',
     'st_active' => 'Aktif', 'st_expired' => 'Sona erdi', 'st_cancelled' => 'İptal edildi (dönem sonuna kadar)',
     'manage_play' => 'Google Play\'de yönet', 'manage_apple' => 'App Store\'da yönet', 'manage_web' => 'Aboneliği yönet',
+    'web_card' => 'Kart bilgilerini güncelle', 'web_cancel' => 'Aboneliği iptal et',
+    'web_cancel_confirm' => 'Aboneliğiniz iptal edilecek; PRO erişiminiz ödenen dönemin sonuna kadar sürer. Devam edilsin mi?',
     'usage' => 'Bu ayki kullanım', 'scans' => 'Yapay zekâ sikke taraması', 'unlimited' => 'Sınırsız', 'of' => '/', 'scans_hint' => 'Her ayın 1\'inde sıfırlanır.',
     'app' => 'AnatolianCoins uygulaması', 'app_desc' => 'Telefonunuzda PRO özellikleri kullanmak için uygulamaya aynı e-postayla giriş yapın.',
     'get_play' => 'Google Play\'den indir', 'get_apple' => 'App Store\'dan indir', 'support' => 'Destek ile iletişim',

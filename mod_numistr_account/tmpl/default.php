@@ -100,6 +100,13 @@ if ($mode === 'navbar') : ?>
                             <a class="uk-button uk-button-default uk-button-small" href="<?php echo $h($urls['manage_play']); ?>" target="_blank" rel="noopener"><?php echo $h($t['manage_play']); ?></a>
                         <?php elseif ($facts['sub_source'] === 'apple') : ?>
                             <a class="uk-button uk-button-default uk-button-small" href="<?php echo $h($urls['manage_apple']); ?>" target="_blank" rel="noopener"><?php echo $h($t['manage_apple']); ?></a>
+                        <?php elseif ($facts['sub_source'] === 'web' && $facts['web_active']) : ?>
+                            <a class="uk-button uk-button-default uk-button-small" href="<?php echo $h($urls['web_cardupdate']); ?>"><?php echo $h($t['web_card']); ?></a>
+                            <form method="post" action="<?php echo $h($urls['web_cancel']); ?>" style="display:inline"
+                                  onsubmit="return confirm('<?php echo $h($t['web_cancel_confirm']); ?>');">
+                                <?php echo Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
+                                <button type="submit" class="uk-button uk-button-text uk-button-small" style="color:#b3261e"><?php echo $h($t['web_cancel']); ?></button>
+                            </form>
                         <?php else : ?>
                             <a class="uk-button uk-button-default uk-button-small" href="<?php echo $h($urls['plans']); ?>"><?php echo $h($t['manage_web']); ?></a>
                         <?php endif; ?>
