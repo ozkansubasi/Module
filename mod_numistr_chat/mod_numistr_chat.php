@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Chat Module
  * @subpackage  mod_numistr_chat
- * @version     2.1.1
+ * @version     2.1.2
  * @copyright   Copyright (C) 2025-2026 NumisTR. All rights reserved.
  * @license     GNU General Public License version 2 or later
  *
