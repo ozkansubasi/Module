@@ -9,10 +9,12 @@
  * v2.0.0: WhatsApp + n8n RAG kutusu kaldirildi; NumisTR AI Asistan (ADR-003 Faz 1)
  *         same-origin /v1/assistant/chat ucuna baglanir. UI tek JS dosyasindadir:
  *         media/mod_numistr_chat/js/numistr-assistant.js (kaynak: Module/numistr-chatbot-widget).
- * v2.1.0: ADR-003 Faz 2b/7 — varsayilan uc SITE uygulamasindaki com_ajax koprusu
+ * v2.1.0: ADR-003 Faz 2b/7 + 2b/9 — varsayilan uc SITE uygulamasindaki com_ajax koprusu
  *         (group=webservices). Joomla API uygulamasi site oturumunu kimlik saymadigi
  *         icin giris yapmis kullanici asistanda anonim gorunuyordu; kopru bunu cozer.
- *         Yeni: kimlik rozeti (Uye/PRO) ve giris + ucretsiz uyelik CTA'lari.
+ *         Yeni: kimlik rozeti (Uye/PRO), giris + ucretsiz uyelik CTA'lari,
+ *         gecmis paneli (konusma listesi / acma / arsivleme) ve Pro'da gunluk
+ *         mesaj sayacinin gizlenmesi.
  */
 
 defined('_JEXEC') or die;

@@ -32,18 +32,23 @@
     if (document.getElementById('numistr-chatbot-widget')) { return; } // load once
 
     // Uc adresi: kopru modunda query-string, rest modunda yol tabanli.
+    // kind: 'chat' | 'conversation' | 'conversations' | 'archive'
     function endpoint(kind, id) {
         if (CONFIG.apiMode === 'rest') {
-            return kind === 'chat'
-                ? CONFIG.apiBase + '/chat'
-                : CONFIG.apiBase + '/conversations/' + encodeURIComponent(id);
+            if (kind === 'chat') { return CONFIG.apiBase + '/chat'; }
+            if (kind === 'conversations') { return CONFIG.apiBase + '/conversations'; }
+            if (kind === 'archive') { return CONFIG.apiBase + '/conversations/' + encodeURIComponent(id) + '/archive'; }
+
+            return CONFIG.apiBase + '/conversations/' + encodeURIComponent(id);
         }
 
         const sep = CONFIG.apiBase.indexOf('?') === -1 ? '?' : '&';
 
-        return kind === 'chat'
-            ? CONFIG.apiBase + sep + 'task=assistant.chat'
-            : CONFIG.apiBase + sep + 'task=assistant.conversation&id=' + encodeURIComponent(id);
+        if (kind === 'chat') { return CONFIG.apiBase + sep + 'task=assistant.chat'; }
+        if (kind === 'conversations') { return CONFIG.apiBase + sep + 'task=assistant.conversations'; }
+        if (kind === 'archive') { return CONFIG.apiBase + sep + 'task=assistant.conversation.archive&id=' + encodeURIComponent(id); }
+
+        return CONFIG.apiBase + sep + 'task=assistant.conversation&id=' + encodeURIComponent(id);
     }
 
     // Giris/kayit baglantisina donus adresi ekle -> kullanici ayni sayfaya doner
@@ -70,6 +75,10 @@
             ctaLogin: 'Giriş yap',
             badgeUser: 'Üye',
             badgePro: 'PRO',
+            history: 'Geçmiş',
+            historyEmpty: 'Henüz kayıtlı sohbet yok.',
+            historyRemove: 'Kaldır',
+            untitled: 'Sohbet',
             remaining: 'Bugün kalan: {n}',
             newChat: 'Yeni sohbet',
             send: 'Gönder',
@@ -87,6 +96,10 @@
             ctaLogin: 'Sign in',
             badgeUser: 'Member',
             badgePro: 'PRO',
+            history: 'History',
+            historyEmpty: 'No saved chats yet.',
+            historyRemove: 'Remove',
+            untitled: 'Chat',
             remaining: 'Left today: {n}',
             newChat: 'New chat',
             send: 'Send',
@@ -402,8 +415,61 @@
                     }
                 }
 
+                #numistr-chat-history {
+                    background: rgba(255,255,255,0.18);
+                    color: #fff;
+                    border: none;
+                    border-radius: 50%;
+                    width: 28px;
+                    height: 28px;
+                    margin-right: 6px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                }
+                #numistr-chat-history:hover { background: rgba(255,255,255,0.32); }
+                #numistr-chat-history-panel {
+                    border-bottom: 1px solid #eee;
+                    background: #fafafa;
+                    max-height: 190px;
+                    overflow-y: auto;
+                }
+                #numistr-chat-history-panel .numistr-history-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 8px 12px;
+                    border-bottom: 1px solid #f0f0f0;
+                    font-size: 13px;
+                }
+                #numistr-chat-history-panel .numistr-history-row:last-child { border-bottom: none; }
+                #numistr-chat-history-panel .numistr-history-open {
+                    flex: 1;
+                    text-align: left;
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    color: #333;
+                    padding: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                #numistr-chat-history-panel .numistr-history-open:hover { color: ${CONFIG.primaryColor}; }
+                #numistr-chat-history-panel .numistr-history-date { color: #999; font-size: 11px; white-space: nowrap; }
+                #numistr-chat-history-panel .numistr-history-del {
+                    background: none;
+                    border: none;
+                    color: #b33;
+                    cursor: pointer;
+                    font-size: 15px;
+                    line-height: 1;
+                    padding: 0 2px;
+                }
+                #numistr-chat-history-panel .numistr-history-empty { padding: 10px 12px; color: #888; font-size: 13px; }
                 #numistr-chat-new {
-                    margin-left: auto;
+                    margin-left: 0;
                     background: rgba(255,255,255,0.18);
                     color: #fff;
                     border: none;
@@ -470,7 +536,16 @@
                         <div class="subtitle">${T.subtitle}</div>
                     </div>
                     <span id="numistr-chat-badge" class="numistr-badge" hidden></span>
+                    <button id="numistr-chat-history" type="button" title="${T.history}" aria-label="${T.history}">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
+                            <path d="M13 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7v3l4-4-4-4v3zm-1 5v5l4 2 .75-1.23-3.25-1.9V8H12z"/>
+                        </svg>
+                    </button>
                     <button id="numistr-chat-new" type="button" title="${T.newChat}" aria-label="${T.newChat}">+</button>
+                </div>
+
+                <div id="numistr-chat-history-panel" hidden>
+                    <div class="numistr-history-list"></div>
                 </div>
 
                 <div id="numistr-chat-messages" aria-live="polite"></div>
@@ -501,6 +576,9 @@
         const messages = document.getElementById('numistr-chat-messages');
         const footer = document.getElementById('numistr-chat-footer');
         const badge = document.getElementById('numistr-chat-badge');
+        const historyBtn = document.getElementById('numistr-chat-history');
+        const historyPanel = document.getElementById('numistr-chat-history-panel');
+        const historyList = historyPanel ? historyPanel.querySelector('.numistr-history-list') : null;
 
         // Kimlik rozeti: anonimde gizli, uyede "Uye", Pro'da altin "PRO".
         function setIdentity(type) {
@@ -536,7 +614,108 @@
             }
         });
 
+        // ---- Gecmis paneli (Faz 2b parca 9) ----
+        // Anonimde de calisir: sunucu anon_key ile filtreler, giris yapilinca
+        // ayni konusmalar uyeye devralinir.
+        function shortDate(iso) {
+            if (!iso) { return ''; }
+
+            const d = new Date(iso.replace(' ', 'T') + 'Z');
+
+            return isNaN(d.getTime()) ? '' : d.toLocaleDateString(LANG === 'en' ? 'en-GB' : 'tr-TR');
+        }
+
+        function renderHistory(list) {
+            if (!historyList) { return; }
+
+            if (!list.length) {
+                historyList.innerHTML = '<div class="numistr-history-empty">' + escapeHtml(T.historyEmpty) + '</div>';
+                return;
+            }
+
+            historyList.innerHTML = list.map(function(c) {
+                return '<div class="numistr-history-row" data-id="' + escapeAttr(String(c.id)) + '">'
+                    + '<button type="button" class="numistr-history-open">' + escapeHtml(c.title || T.untitled) + '</button>'
+                    + '<span class="numistr-history-date">' + escapeHtml(shortDate(c.last_at || c.created)) + '</span>'
+                    + '<button type="button" class="numistr-history-del" title="' + escapeAttr(T.historyRemove) + '" aria-label="' + escapeAttr(T.historyRemove) + '">&times;</button>'
+                    + '</div>';
+            }).join('');
+        }
+
+        async function loadHistory() {
+            if (!historyList) { return; }
+
+            try {
+                const r = await fetch(endpoint('conversations'), {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const data = r.ok ? await r.json() : null;
+
+                setIdentity(data && data.identity);
+                renderHistory(data && Array.isArray(data.conversations) ? data.conversations : []);
+            } catch (e) {
+                renderHistory([]);
+            }
+        }
+
+        async function openConversation(id) {
+            conversationId = id;
+            saveConvId(id);
+            messages.innerHTML = '';
+            historyPanel.hidden = true;
+            await restoreHistory();
+            input.focus();
+        }
+
+        async function archiveConversation(id) {
+            try {
+                await fetch(endpoint('archive', id), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' }
+                });
+            } catch (e) { /* sessizce gec: liste yenilenince gorulur */ }
+
+            if (conversationId === id) {
+                conversationId = null;
+                saveConvId(null);
+                messages.innerHTML = '';
+                addMessage(T.welcome, 'bot');
+            }
+
+            loadHistory();
+        }
+
+        if (historyBtn && historyPanel) {
+            historyBtn.addEventListener('click', function() {
+                const willOpen = historyPanel.hidden;
+                historyPanel.hidden = !willOpen;
+
+                if (willOpen) { loadHistory(); }
+            });
+
+            historyPanel.addEventListener('click', function(e) {
+                const row = e.target.closest ? e.target.closest('.numistr-history-row') : null;
+
+                if (!row) { return; }
+
+                const id = parseInt(row.getAttribute('data-id'), 10);
+
+                if (!id) { return; }
+
+                if (e.target.classList.contains('numistr-history-del')) {
+                    archiveConversation(id);
+                } else if (e.target.closest('.numistr-history-open')) {
+                    openConversation(id);
+                }
+            });
+        }
+
         newBtn.addEventListener('click', function() {
+            if (historyPanel) { historyPanel.hidden = true; }
             conversationId = null;
             saveConvId(null);
             messages.innerHTML = '';
