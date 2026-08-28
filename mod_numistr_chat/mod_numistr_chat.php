@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Chat Module
  * @subpackage  mod_numistr_chat
- * @version     2.1.0
+ * @version     2.1.1
  * @copyright   Copyright (C) 2025-2026 NumisTR. All rights reserved.
  * @license     GNU General Public License version 2 or later
  *
@@ -40,8 +40,18 @@ if ($apiBase === '' || !preg_match('#^(/|https://)#', $apiBase)) {
     $apiBase = '/index.php?option=com_ajax&group=webservices&plugin=numistr&format=json';
 }
 
+// 2.1.0 gecisi: 2.0.x kurulumlarinda bu alanda ESKI VARSAYILAN duruyor ve Joomla
+// modul guncellemesi kayitli ayari korudugu icin kendiliginden degismiyor. Eski
+// varsayilan birebir duruyorsa kopruye yukselt — aksi halde istek Joomla API
+// uygulamasina gider, orada site oturumu gorunmez ve GIRIS YAPMIS KULLANICI
+// ASISTANDA ANONIM SAYILIR (Faz 2b'nin tum amaci bu). Elle girilmis FARKLI bir
+// deger (ozel alan adi, farkli yol) oldugu gibi birakilir.
+if ($apiBase === '/api/index.php/v1/assistant') {
+    $apiBase = '/index.php?option=com_ajax&group=webservices&plugin=numistr&format=json';
+}
+
 // Uc bicimi: com_ajax koprusu query-string, eski REST ucu yol tabanlidir.
-// Ayari elle /api/index.php/v1/assistant yapan kurulumlar calismaya devam eder.
+// (Yukaridaki gecis disinda) elle girilmis her deger oldugu gibi kullanilir.
 $apiMode = strpos($apiBase, 'option=com_ajax') !== false ? 'bridge' : 'rest';
 
 $assistantConfig = [
