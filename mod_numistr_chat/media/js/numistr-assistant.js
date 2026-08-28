@@ -15,7 +15,13 @@
     // the nt_aid cookie, SameSite=Lax -> the widget MUST run on numistr.org).
     // ------------------------------------------------------------------
     const CONFIG = Object.assign({
-        apiBase: '/api/index.php/v1/assistant',
+        // Faz 2b: varsayilan uc SITE uygulamasindaki com_ajax koprusudur.
+        // Neden: /api/index.php (Joomla API uygulamasi) site oturum cerezini
+        // kimlik saymaz -> giris yapmis kullanici asistanda anonim gorunuyordu.
+        // group=webservices sart: bu eklenti grubu site uygulamasinda otomatik
+        // yuklenmez. Eski davranis icin apiMode: 'rest' + apiBase: '/api/...'.
+        apiBase: '/index.php?option=com_ajax&group=webservices&plugin=numistr&format=json',
+        apiMode: 'bridge',
         primaryColor: '#8B4513', // Saddle brown - antik tema
         secondaryColor: '#D4AF37', // Gold
         position: 'bottom-right', // bottom-right, bottom-left
@@ -24,6 +30,32 @@
     }, window.NumisTRAssistantConfig || {}); // mod_numistr_chat passes its params here
 
     if (document.getElementById('numistr-chatbot-widget')) { return; } // load once
+
+    // Uc adresi: kopru modunda query-string, rest modunda yol tabanli.
+    function endpoint(kind, id) {
+        if (CONFIG.apiMode === 'rest') {
+            return kind === 'chat'
+                ? CONFIG.apiBase + '/chat'
+                : CONFIG.apiBase + '/conversations/' + encodeURIComponent(id);
+        }
+
+        const sep = CONFIG.apiBase.indexOf('?') === -1 ? '?' : '&';
+
+        return kind === 'chat'
+            ? CONFIG.apiBase + sep + 'task=assistant.chat'
+            : CONFIG.apiBase + sep + 'task=assistant.conversation&id=' + encodeURIComponent(id);
+    }
+
+    // Giris/kayit baglantisina donus adresi ekle -> kullanici ayni sayfaya doner
+    // ve localStorage'daki conversation_id korundugu icin sohbet kaldigi yerden
+    // devam eder (sunucu anonim konusmayi uyeye devralir).
+    function withReturn(url) {
+        if (!url) { return ''; }
+
+        const sep = url.indexOf('?') === -1 ? '?' : '&';
+
+        return url + sep + 'return=' + encodeURIComponent(window.location.pathname + window.location.search);
+    }
 
     const I18N = {
         tr: {
@@ -35,6 +67,9 @@
             thinking: 'Düşünüyorum...',
             sources: 'Kaynaklar',
             cta: 'Ücretsiz üye ol',
+            ctaLogin: 'Giriş yap',
+            badgeUser: 'Üye',
+            badgePro: 'PRO',
             remaining: 'Bugün kalan: {n}',
             newChat: 'Yeni sohbet',
             send: 'Gönder',
@@ -49,6 +84,9 @@
             thinking: 'Thinking...',
             sources: 'Sources',
             cta: 'Register for free',
+            ctaLogin: 'Sign in',
+            badgeUser: 'Member',
+            badgePro: 'PRO',
             remaining: 'Left today: {n}',
             newChat: 'New chat',
             send: 'Send',
@@ -200,6 +238,22 @@
                     font-size: 16px;
                 }
 
+                #numistr-chat-header .numistr-badge {
+                    margin-left: auto;
+                    margin-right: 8px;
+                    padding: 2px 8px;
+                    border-radius: 10px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    line-height: 1.6;
+                    background: rgba(255, 255, 255, .18);
+                    color: #fff;
+                    white-space: nowrap;
+                }
+                #numistr-chat-header .numistr-badge.pro {
+                    background: ${CONFIG.secondaryColor};
+                    color: #3a2a08;
+                }
                 #numistr-chat-header .subtitle {
                     font-size: 12px;
                     opacity: 0.9;
@@ -415,6 +469,7 @@
                         <div class="title">${T.title}</div>
                         <div class="subtitle">${T.subtitle}</div>
                     </div>
+                    <span id="numistr-chat-badge" class="numistr-badge" hidden></span>
                     <button id="numistr-chat-new" type="button" title="${T.newChat}" aria-label="${T.newChat}">+</button>
                 </div>
 
@@ -445,6 +500,24 @@
         const newBtn = document.getElementById('numistr-chat-new');
         const messages = document.getElementById('numistr-chat-messages');
         const footer = document.getElementById('numistr-chat-footer');
+        const badge = document.getElementById('numistr-chat-badge');
+
+        // Kimlik rozeti: anonimde gizli, uyede "Uye", Pro'da altin "PRO".
+        function setIdentity(type) {
+            if (!badge) { return; }
+
+            if (type === 'pro') {
+                badge.textContent = T.badgePro;
+                badge.classList.add('pro');
+                badge.hidden = false;
+            } else if (type === 'user') {
+                badge.textContent = T.badgeUser;
+                badge.classList.remove('pro');
+                badge.hidden = false;
+            } else {
+                badge.hidden = true;
+            }
+        }
 
         button.setAttribute('aria-label', T.open);
 
@@ -484,7 +557,7 @@
         async function restoreHistory() {
             if (CONFIG.restoreHistory && conversationId) {
                 try {
-                    const r = await fetch(CONFIG.apiBase + '/conversations/' + conversationId, {
+                    const r = await fetch(endpoint('conversation', conversationId), {
                         method: 'GET',
                         credentials: 'same-origin',
                         headers: { 'Accept': 'application/json' }
@@ -527,7 +600,7 @@
             const thinkingId = addThinkingIndicator();
 
             try {
-                const response = await fetch(CONFIG.apiBase + '/chat', {
+                const response = await fetch(endpoint('chat'), {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
@@ -557,7 +630,13 @@
 
                     addMessage(data.answer || T.error, 'bot', data);
 
-                    if (data.quota && typeof data.quota.remaining_today === 'number') {
+                    setIdentity(data.identity);
+
+                    // Pro'da gunluk sayaci gostermenin anlami yok (1000/gun sistem
+                    // sigortasi, kullanici limiti degil).
+                    if (data.identity === 'pro') {
+                        footer.textContent = '';
+                    } else if (data.quota && typeof data.quota.remaining_today === 'number') {
                         footer.textContent = T.remaining.replace('{n}', data.quota.remaining_today);
                     }
                 }
@@ -593,8 +672,17 @@
                 extra += '</div>';
             }
 
-            if (data && data.cta && data.cta.url) {
-                extra += '<a class="numistr-cta" href="' + escapeAttr(data.cta.url) + '">' + escapeHtml(T.cta) + '</a>';
+            if (data && data.cta) {
+                if (data.cta.login_url) {
+                    extra += '<a class="numistr-cta" href="' + escapeAttr(withReturn(data.cta.login_url)) + '">' + escapeHtml(T.ctaLogin) + '</a>';
+                }
+
+                if (data.cta.register_url) {
+                    extra += '<a class="numistr-cta" href="' + escapeAttr(withReturn(data.cta.register_url)) + '">' + escapeHtml(T.cta) + '</a>';
+                } else if (data.cta.url) {
+                    // eski sunucu surumu: yalnizca planlar sayfasi linki
+                    extra += '<a class="numistr-cta" href="' + escapeAttr(data.cta.url) + '">' + escapeHtml(T.cta) + '</a>';
+                }
             }
 
             const body = sender === 'bot' ? renderMarkdown(text) : escapeHtml(text).replace(/\n/g, '<br>');

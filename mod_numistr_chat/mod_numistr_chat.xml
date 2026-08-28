@@ -7,7 +7,7 @@
     <license>GNU General Public License version 2 or later</license>
     <authorEmail>info@numistr.org</authorEmail>
     <authorUrl>https://www.numistr.org</authorUrl>
-    <version>2.0.1</version>
+    <version>2.1.0</version>
     <description>MOD_NUMISTR_CHAT_XML_DESCRIPTION</description>
 
     <files>
@@ -36,7 +36,7 @@
                     type="text"
                     label="MOD_NUMISTR_CHAT_API_BASE_LABEL"
                     description="MOD_NUMISTR_CHAT_API_BASE_DESC"
-                    default="/api/index.php/v1/assistant"
+                    default="/index.php?option=com_ajax&amp;group=webservices&amp;plugin=numistr&amp;format=json"
                     required="true"
                 />
 
