@@ -32,6 +32,18 @@
         <fields name="params">
             <fieldset name="basic">
                 <field
+                    name="recognize_enabled"
+                    type="radio"
+                    layout="joomla.form.field.radio.switcher"
+                    label="MOD_NUMISTR_CHAT_RECOGNIZE_LABEL"
+                    description="MOD_NUMISTR_CHAT_RECOGNIZE_DESC"
+                    default="1"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field
                     name="api_base"
                     type="text"
                     label="MOD_NUMISTR_CHAT_API_BASE_LABEL"

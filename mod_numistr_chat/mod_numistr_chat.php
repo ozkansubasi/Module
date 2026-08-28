@@ -20,6 +20,7 @@
 defined('_JEXEC') or die;
 
 use Joomla\CMS\Helper\ModuleHelper;
+use Joomla\CMS\Session\Session;
 
 $apiBase        = trim((string) $params->get('api_base', '/index.php?option=com_ajax&group=webservices&plugin=numistr&format=json'));
 $widgetPosition = (string) $params->get('widget_position', 'bottom-right');
@@ -47,6 +48,11 @@ $assistantConfig = [
     // koprude sondaki '/' anlamli degil; yalnizca REST ucunda kirpilir
     'apiBase'        => $apiMode === 'rest' ? rtrim($apiBase, '/') : $apiBase,
     'apiMode'        => $apiMode,
+    // Tanima ucu (Faz 2b/8) kimlik gerektirir ve tarama kotasi tuketir; cross-site
+    // form POST'una karsi Joomla oturum jetonu istenir. Sayfa onbellekten gelirse
+    // jeton bayat olabilir -> uc 403 doner, widget "sayfayi yenileyin" der.
+    'csrfToken'      => Session::getFormToken(),
+    'recognizeEnabled' => (int) $params->get('recognize_enabled', 1) === 1,
     'position'       => $widgetPosition,
     'primaryColor'   => $primaryColor,
     'secondaryColor' => $secondaryColor,

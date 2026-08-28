@@ -26,7 +26,9 @@
         secondaryColor: '#D4AF37', // Gold
         position: 'bottom-right', // bottom-right, bottom-left
         storageKey: 'numistr_assistant_conv', // localStorage: { tr: id, en: id }
-        restoreHistory: true
+        restoreHistory: true,
+        recognizeEnabled: true,
+        csrfToken: '' // mod_numistr_chat doldurur (Session::getFormToken)
     }, window.NumisTRAssistantConfig || {}); // mod_numistr_chat passes its params here
 
     if (document.getElementById('numistr-chatbot-widget')) { return; } // load once
@@ -36,6 +38,7 @@
     function endpoint(kind, id) {
         if (CONFIG.apiMode === 'rest') {
             if (kind === 'chat') { return CONFIG.apiBase + '/chat'; }
+            if (kind === 'recognize') { return CONFIG.apiBase + '/recognize'; }
             if (kind === 'conversations') { return CONFIG.apiBase + '/conversations'; }
             if (kind === 'archive') { return CONFIG.apiBase + '/conversations/' + encodeURIComponent(id) + '/archive'; }
 
@@ -45,6 +48,7 @@
         const sep = CONFIG.apiBase.indexOf('?') === -1 ? '?' : '&';
 
         if (kind === 'chat') { return CONFIG.apiBase + sep + 'task=assistant.chat'; }
+        if (kind === 'recognize') { return CONFIG.apiBase + sep + 'task=assistant.recognize'; }
         if (kind === 'conversations') { return CONFIG.apiBase + sep + 'task=assistant.conversations'; }
         if (kind === 'archive') { return CONFIG.apiBase + sep + 'task=assistant.conversation.archive&id=' + encodeURIComponent(id); }
 
@@ -75,6 +79,11 @@
             ctaLogin: 'Giriş yap',
             badgeUser: 'Üye',
             badgePro: 'PRO',
+            photo: 'Fotoğraf yükle',
+            photoSent: '[fotoğraf yüklendi]',
+            photoTooBig: 'Fotoğraf çok büyük (en fazla 5 MB). Lütfen daha küçük bir dosya seçin.',
+            photoStaleToken: 'Oturum bilgisi eskimiş. Lütfen sayfayı yenileyip tekrar deneyin.',
+            scansLeft: 'Kalan tanıma: {n}',
             history: 'Geçmiş',
             historyEmpty: 'Henüz kayıtlı sohbet yok.',
             historyRemove: 'Kaldır',
@@ -96,6 +105,11 @@
             ctaLogin: 'Sign in',
             badgeUser: 'Member',
             badgePro: 'PRO',
+            photo: 'Upload a photo',
+            photoSent: '[photo uploaded]',
+            photoTooBig: 'The photo is too large (5 MB max). Please choose a smaller file.',
+            photoStaleToken: 'Your session token is stale. Please refresh the page and try again.',
+            scansLeft: 'Recognitions left: {n}',
             history: 'History',
             historyEmpty: 'No saved chats yet.',
             historyRemove: 'Remove',
@@ -415,6 +429,27 @@
                     }
                 }
 
+                #numistr-chat-photo {
+                    background: none;
+                    border: none;
+                    color: #888;
+                    cursor: pointer;
+                    padding: 0 6px;
+                    display: inline-flex;
+                    align-items: center;
+                }
+                #numistr-chat-photo:hover { color: ${CONFIG.primaryColor}; }
+                .numistr-matches { margin-top: 8px; }
+                .numistr-match {
+                    display: flex;
+                    align-items: baseline;
+                    gap: 6px;
+                    padding: 3px 0;
+                    font-size: 13px;
+                }
+                .numistr-match a { color: ${CONFIG.primaryColor}; text-decoration: none; }
+                .numistr-match a:hover { text-decoration: underline; }
+                .numistr-match-conf { color: #888; font-size: 11px; white-space: nowrap; }
                 #numistr-chat-history {
                     background: rgba(255,255,255,0.18);
                     color: #fff;
@@ -552,6 +587,13 @@
                 <div id="numistr-chat-footer"></div>
 
                 <div id="numistr-chat-input-container">
+                    ${CONFIG.recognizeEnabled === false ? '' : `
+                    <input type="file" id="numistr-chat-photo-input" accept="image/jpeg,image/png,image/webp" hidden />
+                    <button id="numistr-chat-photo" type="button" title="${T.photo}" aria-label="${T.photo}">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+                            <path d="M9 3l-1.8 2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9zm3 5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z"/>
+                        </svg>
+                    </button>`}
                     <input type="text" id="numistr-chat-input" placeholder="${T.placeholder}" maxlength="1500" autocomplete="off" />
                     <button id="numistr-chat-send" aria-label="${T.send}">
                         <svg viewBox="0 0 24 24">
@@ -577,6 +619,8 @@
         const footer = document.getElementById('numistr-chat-footer');
         const badge = document.getElementById('numistr-chat-badge');
         const historyBtn = document.getElementById('numistr-chat-history');
+        const photoBtn = document.getElementById('numistr-chat-photo');
+        const photoInput = document.getElementById('numistr-chat-photo-input');
         const historyPanel = document.getElementById('numistr-chat-history-panel');
         const historyList = historyPanel ? historyPanel.querySelector('.numistr-history-list') : null;
 
@@ -613,6 +657,110 @@
                 input.focus();
             }
         });
+
+        // ---- Fotograftan tanima (Faz 2b parca 8) ----
+        // Akis: dosya sec -> POST multipart -> sonuc kartini sohbete yaz.
+        // Kullanici sonra "birincisini anlat" diyebilir; eslesmeler konusma
+        // baglaminda durdugu icin LLM get_variant ile devam eder.
+        const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
+        function renderMatches(list) {
+            if (!Array.isArray(list) || !list.length) { return ''; }
+
+            let html = '<div class="numistr-matches">';
+
+            list.forEach(function(m, i) {
+                const title = m.title || ('#' + (m.article_id || ''));
+                const conf = (m.confidence !== null && typeof m.confidence !== 'undefined')
+                    ? '<span class="numistr-match-conf">%' + Math.round(m.confidence * 100) + '</span>'
+                    : '';
+                const label = escapeHtml(String(i + 1) + '. ' + title);
+
+                html += '<div class="numistr-match">'
+                    + (m.url
+                        ? '<a href="' + escapeAttr(m.url) + '" target="_blank" rel="noopener">' + label + '</a>'
+                        : '<span>' + label + '</span>')
+                    + conf + '</div>';
+            });
+
+            return html + '</div>';
+        }
+
+        async function uploadPhoto(file) {
+            if (!file) { return; }
+
+            if (file.size > MAX_IMAGE_BYTES) {
+                addMessage(T.photoTooBig, 'bot');
+                return;
+            }
+
+            addMessage(T.photoSent, 'user');
+
+            const thinkingId = addThinkingIndicator();
+
+            try {
+                const form = new FormData();
+                form.append('image', file);
+                form.append('lang', LANG);
+
+                if (conversationId) { form.append('conversation_id', String(conversationId)); }
+                if (CONFIG.csrfToken) { form.append(CONFIG.csrfToken, '1'); }
+
+                const r = await fetch(endpoint('recognize'), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' },
+                    body: form
+                });
+
+                let data = null;
+                try { data = await r.json(); } catch (e) { data = null; }
+
+                removeThinkingIndicator(thinkingId);
+
+                if (r.status === 403) {
+                    addMessage(T.photoStaleToken, 'bot');
+                    return;
+                }
+
+                if (!data) {
+                    addMessage(T.error, 'bot');
+                    return;
+                }
+
+                if (data.conversation_id) {
+                    conversationId = parseInt(data.conversation_id, 10) || conversationId;
+                    saveConvId(conversationId);
+                }
+
+                setIdentity(data.identity);
+
+                if (!data.ok) {
+                    // auth_required / scan_quota / error -> sunucunun metni + CTA
+                    addMessage(data.answer || T.error, 'bot', data.cta ? { cta: data.cta } : null);
+                    return;
+                }
+
+                addMessage(data.answer || '', 'bot', { matches: data.matches });
+
+                if (data.scan_quota && typeof data.scan_quota.remaining !== 'undefined') {
+                    footer.textContent = T.scansLeft.replace('{n}', data.scan_quota.remaining);
+                }
+            } catch (e) {
+                removeThinkingIndicator(thinkingId);
+                addMessage(T.error, 'bot');
+            }
+        }
+
+        if (photoBtn && photoInput) {
+            photoBtn.addEventListener('click', function() { photoInput.click(); });
+
+            photoInput.addEventListener('change', function() {
+                const file = photoInput.files && photoInput.files[0];
+                photoInput.value = '';
+                uploadPhoto(file);
+            });
+        }
 
         // ---- Gecmis paneli (Faz 2b parca 9) ----
         // Anonimde de calisir: sunucu anon_key ile filtreler, giris yapilinca
@@ -849,6 +997,10 @@
                     }
                 });
                 extra += '</div>';
+            }
+
+            if (data && Array.isArray(data.matches) && data.matches.length) {
+                extra += renderMatches(data.matches);
             }
 
             if (data && data.cta) {
