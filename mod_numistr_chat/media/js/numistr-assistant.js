@@ -84,6 +84,7 @@
             photoTooBig: 'Fotoğraf çok büyük (en fazla 5 MB). Lütfen daha küçük bir dosya seçin.',
             photoStaleToken: 'Oturum bilgisi eskimiş. Lütfen sayfayı yenileyip tekrar deneyin.',
             scansLeft: 'Kalan tanıma: {n}',
+            scansUnlimited: 'Tanıma: sınırsız',
             history: 'Geçmiş',
             historyEmpty: 'Henüz kayıtlı sohbet yok.',
             historyRemove: 'Kaldır',
@@ -110,6 +111,7 @@
             photoTooBig: 'The photo is too large (5 MB max). Please choose a smaller file.',
             photoStaleToken: 'Your session token is stale. Please refresh the page and try again.',
             scansLeft: 'Recognitions left: {n}',
+            scansUnlimited: 'Recognition: unlimited',
             history: 'History',
             historyEmpty: 'No saved chats yet.',
             historyRemove: 'Remove',
@@ -744,7 +746,11 @@
                 addMessage(data.answer || '', 'bot', { matches: data.matches });
 
                 if (data.scan_quota && typeof data.scan_quota.remaining !== 'undefined') {
-                    footer.textContent = T.scansLeft.replace('{n}', data.scan_quota.remaining);
+                    // Pro'da limit "sinirsiz" sentinel'i (999999); ham sayiyi
+                    // gostermek hem cirkin hem de ic degeri sizdiriyor.
+                    footer.textContent = (data.scan_quota.unlimited || data.scan_quota.limit >= 100000)
+                        ? T.scansUnlimited
+                        : T.scansLeft.replace('{n}', data.scan_quota.remaining);
                 }
             } catch (e) {
                 removeThinkingIndicator(thinkingId);
