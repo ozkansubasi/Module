@@ -3,6 +3,11 @@
     #google-antik-harita { width: 100%; height: 100%; position: absolute !important; top: 0; left: 0; overflow: hidden; }
     .custom-popup-window { position: absolute; background: #FCF5ED; padding: 15px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); min-width: 250px; max-width: 350px; font-family: sans-serif; display: none; transform: translate(-50%, calc(-100% - 15px)); transition: opacity 0.2s; z-index: 1001; }
     .custom-popup-window::after { content: ''; position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 10px solid #FCF5ED; }
+    /* 2026-09-08: yerlesim popup'indan makaleye link. Popup paleti (#FCF5ED zemin,
+       #6D4C41 kapatma ikonu) korunacak sekilde toprak tonu secildi. */
+    .custom-popup-link { display: inline-block; margin-top: 10px; font-size: 13px; font-weight: 600;
+        color: #8C3B2E; text-decoration: none; border-bottom: 1px solid rgba(140,59,46,.35); }
+    .custom-popup-link:hover { color: #6D4C41; border-bottom-color: #6D4C41; }
     .custom-popup-close-button { position: absolute; top: 8px; right: 8px; width: 20px; height: 20px; cursor: pointer; opacity: 0.7; }
     .custom-popup-close-button:hover { opacity: 1; }
     .custom-popup-content h3 { margin: 0 0 10px 0; font-size: 16px; color: #333; }
@@ -366,7 +371,7 @@ function startMapLogic() {
 
     class CustomInfoWindow extends google.maps.OverlayView { /* ... Önceki kodla aynı ... */ }
     class OptimizedRenderer { /* ... Önceki kodla aynı ... */ }
-    CustomInfoWindow = class extends google.maps.OverlayView { constructor() { super(); this.div = document.createElement('div'); this.div.className = 'custom-popup-window'; this.div.innerHTML = `<svg class="custom-popup-close-button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6D4C41" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><div class="custom-popup-content"><h3 id="popup-title-custom"></h3><p id="popup-content-custom"></p></div>`; this.contentTitle = this.div.querySelector('#popup-title-custom'); this.contentBody = this.div.querySelector('#popup-content-custom'); this.closeButton = this.div.querySelector('.custom-popup-close-button'); this.closeButton.onclick = () => { this.close(); }; } onAdd() { this.getPanes().floatPane.appendChild(this.div); } onRemove() { if (this.div.parentElement) this.div.parentElement.removeChild(this.div); } draw() { const pos = this.get('position'); if (pos && this.getProjection()) { const p = this.getProjection().fromLatLngToDivPixel(pos); this.div.style.left = p.x + 'px'; this.div.style.top = p.y + 'px'; } } open(map, marker) { this.set('position', marker.getPosition()); this.setMap(map); this.draw(); this.div.style.display = 'block'; } close() { this.setMap(null); this.div.style.display = 'none'; } setContent(title, content) { this.contentTitle.textContent = title; this.contentBody.textContent = content || ''; } };
+    CustomInfoWindow = class extends google.maps.OverlayView { constructor() { super(); this.div = document.createElement('div'); this.div.className = 'custom-popup-window'; this.div.innerHTML = `<svg class="custom-popup-close-button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6D4C41" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg><div class="custom-popup-content"><h3 id="popup-title-custom"></h3><p id="popup-content-custom"></p><a id="popup-link-custom" class="custom-popup-link" style="display:none"></a></div>`; this.contentTitle = this.div.querySelector('#popup-title-custom'); this.contentBody = this.div.querySelector('#popup-content-custom'); this.contentLink = this.div.querySelector('#popup-link-custom'); this.closeButton = this.div.querySelector('.custom-popup-close-button'); this.closeButton.onclick = () => { this.close(); }; } onAdd() { this.getPanes().floatPane.appendChild(this.div); } onRemove() { if (this.div.parentElement) this.div.parentElement.removeChild(this.div); } draw() { const pos = this.get('position'); if (pos && this.getProjection()) { const p = this.getProjection().fromLatLngToDivPixel(pos); this.div.style.left = p.x + 'px'; this.div.style.top = p.y + 'px'; } } open(map, marker) { this.set('position', marker.getPosition()); this.setMap(map); this.draw(); this.div.style.display = 'block'; } close() { this.setMap(null); this.div.style.display = 'none'; } setContent(title, content, url, linkLabel) { this.contentTitle.textContent = title; this.contentBody.textContent = content || ''; if (url) { this.contentLink.setAttribute('href', url); this.contentLink.textContent = linkLabel || 'Makaleyi ac'; this.contentLink.style.display = 'inline-block'; } else { this.contentLink.removeAttribute('href'); this.contentLink.style.display = 'none'; } } };
     OptimizedRenderer = class { render({ count, position }, stats) { const iconBasePath = '/media/map-icons/'; let iconUrl = iconBasePath + 'cluster-s.png'; let size = 30; if (count > 100) { iconUrl = iconBasePath + 'cluster-l.png'; size = 44; } else if (count > 10) { iconUrl = iconBasePath + 'cluster-m.png'; size = 36; } return new google.maps.Marker({ position, icon: { url: iconUrl, scaledSize: new google.maps.Size(size, size), }, label: { text: String(count), color: '#FCF5ED', fontSize: '12px', fontWeight: 'bold', }, zIndex: 1000 + count, }); } };
 
     const mapStyle = [{"featureType":"all","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"landscape.natural","elementType":"geometry","stylers":[{"color":"#e7c8ae"}]},{"featureType":"landscape.natural.landcover","elementType":"geometry","stylers":[{"color":"#f3e0c5"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#d1ad6f"}]},{"featureType":"road","stylers":[{"visibility":"off"}]},{"featureType":"poi","stylers":[{"visibility":"off"}]},{"featureType":"administrative","stylers":[{"visibility":"off"}]},{"featureType":"transit","stylers":[{"visibility":"off"}]}];
@@ -380,38 +385,78 @@ function startMapLogic() {
 
     const customInfoWindow = new CustomInfoWindow();
     const locationIcon = { path: google.maps.SymbolPath.CIRCLE, scale: 4.5, fillOpacity: 0, strokeColor: '#c0392b', strokeWeight: 1.5 };
+    // Sikke basmis yerlesim ayri gorunur: haritanin numizmatik omurgasi bu 221 nokta.
+    const mintIcon = { path: google.maps.SymbolPath.CIRCLE, scale: 5.5, fillOpacity: 0.85, fillColor: '#b7791f', strokeColor: '#7b5307', strokeWeight: 1.5 };
     const mapClusterer = new markerClusterer.MarkerClusterer({ map, renderer: new OptimizedRenderer() });
 
     let activeRequestController = null;
+
+    // Kademeli gosterim (2026-09-08). Onceki hal: /get_points.php `zoom` parametresini
+    // ALIYOR ama HIC KULLANMIYORDU ve LIMIT 1000 sabitti -- 1610 yerlesimin 610'u hicbir
+    // kosulda gorunmuyordu. Yeni kural urunle esleiyor: uzaktan bakarken numizmatik
+    // omurga (darphaneler), yakinlastikca tum arkeolojik doku.
+    const POINTS_MIN_ZOOM     = 8;   // altinda hic nokta yok, bolge etiketleri yeterli
+    const MINTS_ONLY_MAX_ZOOM = 9;   // 8-9 arasi yalniz sikke basmis yerlesimler
+
     function updateMarkers() {
         const currentZoom = map.getZoom();
-        if (currentZoom < 8) {
-            mapClusterer.clearMarkers();
-            return;
-        }
+        if (currentZoom < POINTS_MIN_ZOOM) { mapClusterer.clearMarkers(); return; }
+
         const bounds = map.getBounds();
         if (!bounds) return;
         if (activeRequestController) { activeRequestController.abort(); }
         activeRequestController = new AbortController();
         const signal = activeRequestController.signal;
+
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
-        const url = `/get_points.php?zoom=${currentZoom}&ne_lat=${ne.lat()}&ne_lng=${ne.lng()}&sw_lat=${sw.lat()}&sw_lng=${sw.lng()}&lang=${isEnglish ? 'en' : 'tr'}`;
+        const lang = isEnglish ? 'en' : 'tr';
+        const onlyCoins = currentZoom <= MINTS_ONLY_MAX_ZOOM ? '&only_coins=1' : '';
+        const linkLabel = isEnglish ? 'Open article' : 'Makaleyi ac';
 
-        fetch(url, { signal }).then(response => response.json()).then(responseJson => {
-            if (responseJson.error) { throw new Error(`Sunucu taraflı hata: ${responseJson.error}`); }
-            const data = responseJson.data;
+        // get_points.php yerine surumlu/testli /v1 ucu: loc_id, has_coins ve makale
+        // URL'sini de dondurur; aciklama LISTEDE TASINMAZ (yuk), tiklaninca cekilir.
+        const url = `/api/index.php/v1/locations?ne_lat=${ne.lat()}&ne_lng=${ne.lng()}`
+                  + `&sw_lat=${sw.lat()}&sw_lng=${sw.lng()}&lang=${lang}&limit=2000${onlyCoins}`;
+
+        fetch(url, { signal }).then(r => r.json()).then(json => {
+            if (json.errors) { throw new Error((json.errors[0] && json.errors[0].detail) || 'locations error'); }
+            const data = json.data || [];
             mapClusterer.clearMarkers();
-            const newMarkers = data.map(point => {
-                const position = { lat: point[0], lng: point[1] };
-                const name = point[2];
-                const desc = point[3];
-                const marker = new google.maps.Marker({ position, icon: locationIcon, zIndex: 1 });
-                marker.addListener('click', function(e) { e.domEvent.stopPropagation(); mapClusterer.markers.forEach(m => m.setZIndex(1)); this.setZIndex(100); customInfoWindow.setContent(name, desc); customInfoWindow.open(map, this); });
+
+            const newMarkers = data.map(loc => {
+                const marker = new google.maps.Marker({
+                    position: { lat: loc.lat, lng: loc.lng },
+                    icon: loc.has_coins ? mintIcon : locationIcon,
+                    zIndex: loc.has_coins ? 2 : 1
+                });
+                marker.__hasCoins = !!loc.has_coins;
+
+                marker.addListener('click', function (e) {
+                    e.domEvent.stopPropagation();
+                    mapClusterer.markers.forEach(m => m.setZIndex(m.__hasCoins ? 2 : 1));
+                    this.setZIndex(100);
+
+                    // Ad ve link ANINDA gosterilir; popup yuklenirken bos kalmaz.
+                    customInfoWindow.setContent(loc.name, isEnglish ? 'Loading...' : 'Yukleniyor...', loc.url, linkLabel);
+                    customInfoWindow.open(map, this);
+
+                    fetch(`/api/index.php/v1/locations/${encodeURIComponent(loc.id)}?lang=${lang}`)
+                        .then(r => r.json())
+                        .then(d => {
+                            const rec = (d && d.data) || {};
+                            customInfoWindow.setContent(loc.name, rec.summary || '', loc.url, linkLabel);
+                        })
+                        .catch(() => { customInfoWindow.setContent(loc.name, '', loc.url, linkLabel); });
+                });
+
                 return marker;
             });
+
             mapClusterer.addMarkers(newMarkers);
-        }).catch(error => { if (error.name !== 'AbortError') { console.error("Markerlar güncellenirken hata:", error); } }).finally(() => { activeRequestController = null; });
+        }).catch(error => {
+            if (error.name !== 'AbortError') { console.error('Markerlar guncellenirken hata:', error); }
+        }).finally(() => { activeRequestController = null; });
     }
     google.maps.event.addListener(map, 'idle', updateMarkers);
 
