@@ -376,7 +376,41 @@ function startMapLogic() {
 
     const mapStyle = [{"featureType":"all","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"landscape.natural","elementType":"geometry","stylers":[{"color":"#e7c8ae"}]},{"featureType":"landscape.natural.landcover","elementType":"geometry","stylers":[{"color":"#f3e0c5"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#d1ad6f"}]},{"featureType":"road","stylers":[{"visibility":"off"}]},{"featureType":"poi","stylers":[{"visibility":"off"}]},{"featureType":"administrative","stylers":[{"visibility":"off"}]},{"featureType":"transit","stylers":[{"visibility":"off"}]}];
     const mapOptions = { center: { lat: 39.0, lng: 35.0 }, zoom: 7, styles: mapStyle, mapTypeId: 'terrain', disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative' };
-    const map = new google.maps.Map(document.getElementById("google-antik-harita"), mapOptions);
+    const mapEl = document.getElementById("google-antik-harita");
+    const map = new google.maps.Map(mapEl, mapOptions);
+
+    // ---------------------------------------------------------------------
+    // 2026-09-08: harita ILK TIKLAMAYA KADAR BOS kaliyordu -- zemin bile yok,
+    // yalnizca bolge etiketleri. Tek tik (zoom degistirmeden) her seyi
+    // canlandiriyordu. Klasik Google Maps kusuru: kap olusturulurken yuksekligi
+    // 0 / yerlesimi henuz tamamlanmamis oluyor, Google o olcuyu onbellege aliyor
+    // ve yeniden olcmek icin bir olay bekliyor.
+    //
+    // Kurulum kodu bu tarihte degismedi (yalniz API anahtari satiri), yani kusur
+    // onceden vardi ve muhtemelen "harita bos geliyor" diye fark edilmemisti.
+    //
+    // Cozum: kabin olculeri gercekten olustugunda Google'a bir kez resize haber
+    // ver ve merkezi koru. ResizeObserver yoksa tek seferlik zamanlayiciya duser.
+    (function forceMapLayout() {
+        let done = false;
+
+        const kick = () => {
+            if (done || !mapEl.offsetHeight || !mapEl.offsetWidth) return;
+            done = true;
+            const c = map.getCenter();
+            google.maps.event.trigger(map, 'resize');
+            if (c) map.setCenter(c);
+        };
+
+        if (typeof ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(() => { kick(); if (done) ro.disconnect(); });
+            ro.observe(mapEl);
+        }
+
+        // Yedek: gozlemci desteklenmiyorsa ya da olcu zaten dogruysa
+        google.maps.event.addListenerOnce(map, 'idle', kick);
+        setTimeout(kick, 400);
+    })();
 
     // Haritaya tıklandığında lejantı kapat
     map.addListener('click', () => {
