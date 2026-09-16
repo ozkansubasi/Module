@@ -83,6 +83,17 @@ function numistr_render_gallery() {
         // Base URL - Joomla language filter ve SEF'i tamamen bypass etmek için
         $baseUrl = rtrim(\Joomla\CMS\Uri\Uri::root(), '/');
 
+        // ADR-006 Faz 2: Pro grubundaki oturum açmış kullanıcıya lightbox'ta filigransız (wm=2).
+        // Yetkiyi bileşen doğrular (oturum grubu); burada yalnız URL seçilir.
+        $popupWm = 1;
+        try {
+            $ident = $app->getIdentity();
+            $proGroupId = (int)\Joomla\CMS\Component\ComponentHelper::getParams('com_numistr')->get('pro_group_id', 10);
+            if ($ident && !$ident->guest && $proGroupId > 0 && in_array($proGroupId, $ident->getAuthorisedGroups(), true)) {
+                $popupWm = 2;
+            }
+        } catch (\Throwable $e) { $popupWm = 1; }
+
         foreach ($images as $idx => $image) {
             // ABSOLUTE URL with format=raw - /tr/ prefix'ini atla
             // HER GÖRSEL KENDİ image_id'sini kullanır
@@ -92,7 +103,7 @@ function numistr_render_gallery() {
             // Gallery'de her görsel kendi coins_images kaydını kullanır
 
             // ABSOLUTE URL with format=raw - Joomla language filter ve SEF'i tamamen bypass et
-            $popupUrl = $baseUrl . '/index.php?option=com_numistr&view=gorsel&format=raw&id='.(int)$image->image_id.'&wm=1';
+            $popupUrl = $baseUrl . '/index.php?option=com_numistr&view=gorsel&format=raw&id='.(int)$image->image_id.'&wm='.$popupWm;
 
             // --- ÇİFTLİ GÖRSEL TESPİTİ: image_type = "detay" ise tek satır ---
             $t = strtolower(trim((string)($image->image_type ?? '')));
