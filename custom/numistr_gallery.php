@@ -22,7 +22,7 @@ function numistr_render_gallery() {
 
         // Görselleri çek
         $q  = $db->getQuery(true)
-            ->select($db->quoteName(['image_id','image_type','weight','diameter','ordering','filename','remote_url']))
+            ->select($db->quoteName(['image_id','image_type','weight','diameter','ordering','filename','remote_url','source_credit','license']))
             ->from($db->quoteName('coins_images'))
             ->where($db->quoteName('coin_id') . ' = ' . (int)$coin_id)
             ->order($db->quoteName('ordering') . ' ASC');
@@ -128,6 +128,18 @@ function numistr_render_gallery() {
             $d = isset($image->diameter) ? trim((string)$image->diameter) : '';
             if ($w !== '') echo '<p class="metric"><strong>Ağırlık:</strong> ' . htmlspecialchars($w, ENT_QUOTES, 'UTF-8') . ' g</p>';
             if ($d !== '') echo '<p class="metric"><strong>Çap:</strong> '      . htmlspecialchars($d, ENT_QUOTES, 'UTF-8') . ' mm</p>';
+
+            // ADR-008 — kaynak atfı. CC BY gibi lisanslarda ZORUNLU, kamu malında nezaket kuralı.
+            // Atıf her görselde gösterilir (çift sütunda caption gizlense de), çünkü lisans şartı
+            // görsel başınadır: $showCaption'a bağlanmaz.
+            $credit = isset($image->source_credit) ? trim((string)$image->source_credit) : '';
+            $lic    = isset($image->license)       ? trim((string)$image->license)       : '';
+            if ($credit !== '' || $lic !== '') {
+                echo '<p class="img-credit">';
+                if ($credit !== '') echo htmlspecialchars($credit, ENT_QUOTES, 'UTF-8');
+                if ($lic !== '')    echo ($credit !== '' ? ' · ' : '') . '<span class="img-lic">' . htmlspecialchars($lic, ENT_QUOTES, 'UTF-8') . '</span>';
+                echo '</p>';
+            }
             echo '  </div>';
 
             echo '</div>';
@@ -252,6 +264,8 @@ function numistr_render_gallery() {
 .gallery-item img:hover{box-shadow:0 4px 10px rgba(0,0,0,.15)}
 .gallery-caption{margin-top:8px;font-size:13px;color:#555;}
 .gallery-caption p{margin:4px 0;line-height:1.4}
+.gallery-caption .img-credit{font-size:11px;color:#777;margin-top:6px;line-height:1.35}
+.gallery-caption .img-credit .img-lic{color:#999}
 
 /* Çiftli (image_type=detay) öğe: tam satır, görsel ortalı ve normal boyutta */
 .gallery-item.pair{flex-basis:100%;text-align:center;}
