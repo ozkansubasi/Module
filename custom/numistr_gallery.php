@@ -22,7 +22,7 @@ function numistr_render_gallery() {
 
         // Görselleri çek
         $q  = $db->getQuery(true)
-            ->select($db->quoteName(['image_id','image_type','weight','diameter','ordering','filename','remote_url','source_credit','license']))
+            ->select($db->quoteName(['image_id','image_type','weight','diameter','ordering','filename','remote_url','source_credit','license','license_ok']))
             ->from($db->quoteName('coins_images'))
             ->where($db->quoteName('coin_id') . ' = ' . (int)$coin_id)
             ->order($db->quoteName('ordering') . ' ASC');
@@ -103,7 +103,10 @@ function numistr_render_gallery() {
             // Gallery'de her görsel kendi coins_images kaydını kullanır
 
             // ABSOLUTE URL with format=raw - Joomla language filter ve SEF'i tamamen bypass et
-            $popupUrl = $baseUrl . '/index.php?option=com_numistr&view=gorsel&format=raw&id='.(int)$image->image_id.'&wm='.$popupWm;
+            // ADR-008 rev. 2026-09-25: Pro'nun filigransız (wm=2) sürümü yalnız serbest lisanslı görselde;
+            // NC / doğrulanmamış görsel herkese wm=1 ile gider (bileşen onu filigransız, değiştirmeden verir).
+            $imgWm    = ((int)($image->license_ok ?? 0) === 1) ? $popupWm : 1;
+            $popupUrl = $baseUrl . '/index.php?option=com_numistr&view=gorsel&format=raw&id='.(int)$image->image_id.'&wm='.$imgWm;
 
             // --- ÇİFTLİ GÖRSEL TESPİTİ: image_type = "detay" ise tek satır ---
             $t = strtolower(trim((string)($image->image_type ?? '')));
