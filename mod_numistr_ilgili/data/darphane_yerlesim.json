@@ -1,0 +1,478 @@
+{
+ "_kaynak": "scripts/b12_mapping.json mint_to_articles (2026-10-15); darphane anahtarı (mint-name) -> TR yerleşim makale kimlikleri",
+ "darphane": {
+  "abydus": [
+   32124
+  ],
+  "adada": [
+   31011
+  ],
+  "adana": [
+   31574
+  ],
+  "adramyteum": [
+   31463
+  ],
+  "aegae_aeolis": [
+   31464
+  ],
+  "aezanis": [
+   31777
+  ],
+  "alinda": [
+   31279
+  ],
+  "amastris": [
+   30768
+  ],
+  "amblada": [
+   31016
+  ],
+  "amisus": [
+   31514
+  ],
+  "amyzon": [
+   31283
+  ],
+  "anazarbus": [
+   31691
+  ],
+  "andeda": [
+   31019
+  ],
+  "antandrus": [
+   31466
+  ],
+  "antiocheia_ad_maeandrum": [
+   31021
+  ],
+  "antiocheia_pisidia": [
+   31784
+  ],
+  "aperlae": [
+   31024
+  ],
+  "aphrodisias_cilicia": [
+   31581
+  ],
+  "apollonia_ad_rhyndacum": [
+   31938
+  ],
+  "apollonia_lycia": [
+   31025
+  ],
+  "apollonis": [
+   31469
+  ],
+  "appia": [
+   31785
+  ],
+  "arkathiokerta": [
+   32187
+  ],
+  "arycanda": [
+   31035,
+   31036
+  ],
+  "aspendus": [
+   31040
+  ],
+  "assus": [
+   31475
+  ],
+  "attaea": [
+   31482,
+   31483
+  ],
+  "attuda": [
+   31042
+  ],
+  "balbura": [
+   31046
+  ],
+  "birytis": [
+   31485
+  ],
+  "blaundus": [
+   31803
+  ],
+  "cabeira": [
+   31536
+  ],
+  "calynda": [
+   31088
+  ],
+  "candyba": [
+   31089
+  ],
+  "caunus": [
+   31051
+  ],
+  "ceramus": [
+   31332
+  ],
+  "cibyra": [
+   31054
+  ],
+  "cidramus": [
+   31102
+  ],
+  "cius": [
+   32021
+  ],
+  "clazomenae": [
+   31414
+  ],
+  "cnidus": [
+   31295,
+   31296
+  ],
+  "colophon": [
+   31297,
+   31298
+  ],
+  "colossae": [
+   31055
+  ],
+  "comama": [
+   31056
+  ],
+  "conana": [
+   31057
+  ],
+  "coropissus": [
+   31688
+  ],
+  "corycus": [
+   31597
+  ],
+  "cremna": [
+   31058
+  ],
+  "cromna": [
+   30825
+  ],
+  "cybistra": [
+   31598
+  ],
+  "cyme_aeolis": [
+   31492
+  ],
+  "cys": [
+   31342
+  ],
+  "cyzicus": [
+   31960
+  ],
+  "dardanus": [
+   32132
+  ],
+  "dionysopolis_phrygia": [
+   32104
+  ],
+  "elaea": [
+   31499
+  ],
+  "ephesus": [
+   31302
+  ],
+  "epiphaneia_cilicia": [
+   31741
+  ],
+  "erythrae": [
+   31502
+  ],
+  "etenna": [
+   31065
+  ],
+  "eumeneia": [
+   31820
+  ],
+  "euromus": [
+   31304
+  ],
+  "eusebeia": [
+   30981
+  ],
+  "gagae": [
+   31069
+  ],
+  "gargara": [
+   31504
+  ],
+  "gaziura": [
+   31528
+  ],
+  "gentinus": [
+   31505
+  ],
+  "hadrianeia": [
+   31824
+  ],
+  "hadrianothera": [
+   31387
+  ],
+  "halicarnassus": [
+   31310
+  ],
+  "hamaxitus": [
+   31389
+  ],
+  "harpasa": [
+   31311
+  ],
+  "holmi": [
+   31611
+  ],
+  "hydisus": [
+   31317
+  ],
+  "iasus": [
+   31321
+  ],
+  "iconium": [
+   31613
+  ],
+  "idyma": [
+   31322
+  ],
+  "ilium": [
+   31402
+  ],
+  "isaura": [
+   31616
+  ],
+  "issus": [
+   31726
+  ],
+  "lampsacus": [
+   32150
+  ],
+  "laodiceia_ad_lycum": [
+   31122
+  ],
+  "laranda": [
+   31633
+  ],
+  "lebedus": [
+   31347
+  ],
+  "magnesia_ad_maeandrum": [
+   31352
+  ],
+  "magnesia_ad_sipylum": [
+   31434
+  ],
+  "mallus": [
+   31638
+  ],
+  "metropolis_ionia": [
+   31441
+  ],
+  "miletopolis": [
+   31993
+  ],
+  "miletus": [
+   31357
+  ],
+  "mostene": [
+   31446
+  ],
+  "mylasa": [
+   31359
+  ],
+  "myndus": [
+   31360
+  ],
+  "myra": [
+   31147
+  ],
+  "myriandrus": [
+   31736
+  ],
+  "myrina_aeolis": [
+   31448
+  ],
+  "myus": [
+   31361
+  ],
+  "nagidus": [
+   31649
+  ],
+  "neonteichos": [
+   31453
+  ],
+  "nicomedia": [
+   32001
+  ],
+  "oenoanda": [
+   31151
+  ],
+  "olympus": [
+   31155
+  ],
+  "ophrynium": [
+   30704
+  ],
+  "orthosia_caria": [
+   31365
+  ],
+  "patara": [
+   31167
+  ],
+  "pergamum": [
+   30712
+  ],
+  "perperene": [
+   30714
+  ],
+  "pessinus": [
+   31869
+  ],
+  "pharnaceia": [
+   31539
+  ],
+  "phaselis": [
+   31172
+  ],
+  "phellus": [
+   31173
+  ],
+  "philomelium": [
+   31870
+  ],
+  "phocaea": [
+   30716
+  ],
+  "pinara": [
+   31176
+  ],
+  "placia": [
+   32010
+  ],
+  "plarasa": [
+   31179
+  ],
+  "podalia": [
+   31181
+  ],
+  "priapus": [
+   32016
+  ],
+  "priene": [
+   31753
+  ],
+  "proconnesus": [
+   32018
+  ],
+  "prostanna": [
+   31185
+  ],
+  "prusa_ad_olympum": [
+   32020
+  ],
+  "rhodiapolis": [
+   31188
+  ],
+  "samsosata": [
+   31558
+  ],
+  "sardes": [
+   30727
+  ],
+  "savatra": [
+   31676
+  ],
+  "scepsis": [
+   30736
+  ],
+  "selge": [
+   31197
+  ],
+  "sesamus": [
+   30768
+  ],
+  "side": [
+   31202
+  ],
+  "sidyma": [
+   31203
+  ],
+  "sigeum": [
+   30731
+  ],
+  "sinope": [
+   31246
+  ],
+  "smyrna": [
+   30738
+  ],
+  "stectorium": [
+   31893
+  ],
+  "stratoniceia": [
+   31759
+  ],
+  "syangela": [
+   31760
+  ],
+  "synnada": [
+   31896
+  ],
+  "tabae": [
+   31210
+  ],
+  "tarsus": [
+   31681
+  ],
+  "tavium": [
+   30931
+  ],
+  "telmessus": [
+   31213
+  ],
+  "temnus": [
+   30742
+  ],
+  "tenedos": [
+   30744
+  ],
+  "teos": [
+   30745
+  ],
+  "teuthrania": [
+   30746
+  ],
+  "thyatira": [
+   30748
+  ],
+  "thyessus": [
+   31393
+  ],
+  "tisna": [
+   30751
+  ],
+  "tium": [
+   30847
+  ],
+  "tlos": [
+   31220,
+   31771
+  ],
+  "tralles": [
+   31772
+  ],
+  "trapezus": [
+   31253
+  ],
+  "tyana": [
+   31685
+  ],
+  "zela": [
+   31260
+  ],
+  "zeleia": [
+   32049
+  ]
+ }
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_NUMISTR_ILGILI</name>
+    <author>NumisTR</author>
+    <creationDate>2026-10-15</creationDate>
+    <copyright>Copyright (C) 2026 NumisTR. All rights reserved.</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <authorEmail>info@numistr.org</authorEmail>
+    <authorUrl>https://www.numistr.org</authorUrl>
+    <version>1.0.0</version>
+    <description>MOD_NUMISTR_ILGILI_XML_DESCRIPTION</description>
+
+    <files>
+        <filename module="mod_numistr_ilgili">mod_numistr_ilgili.php</filename>
+        <filename>helper.php</filename>
+        <folder>tmpl</folder>
+        <folder>data</folder>
+        <folder>language</folder>
+    </files>
+
+    <languages>
+        <language tag="en-GB">language/en-GB/mod_numistr_ilgili.ini</language>
+        <language tag="en-GB">language/en-GB/mod_numistr_ilgili.sys.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_ilgili.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_ilgili.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field name="limit" type="number" label="MOD_NUMISTR_ILGILI_LIMIT_LABEL" default="8" min="1" max="24" filter="integer"/>
+            </fieldset>
+            <fieldset name="advanced">
+                <field name="layout" type="modulelayout" label="JFIELD_ALT_LAYOUT_LABEL" class="form-select" validate="moduleLayout"/>
+                <field name="moduleclass_sfx" type="textarea" label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL" rows="3" validate="CssIdentifier"/>
+                <field name="cache" type="list" label="COM_MODULES_FIELD_CACHING_LABEL" default="1" filter="integer" validate="options">
+                    <option value="1">JGLOBAL_USE_GLOBAL</option>
+                    <option value="0">COM_MODULES_FIELD_VALUE_NOCACHING</option>
+                </field>
+                <field name="cache_time" type="number" label="COM_MODULES_FIELD_CACHE_TIME_LABEL" default="900" filter="integer"/>
+                <field name="cachemode" type="hidden" default="safeuri"/>
+            </fieldset>
+        </fields>
+    </config>
+</extension>
