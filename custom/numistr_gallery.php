@@ -25,6 +25,7 @@ function numistr_render_gallery() {
             ->select($db->quoteName(['image_id','image_type','weight','diameter','ordering','filename','remote_url','source_credit','license','license_ok']))
             ->from($db->quoteName('coins_images'))
             ->where($db->quoteName('coin_id') . ' = ' . (int)$coin_id)
+            ->where($db->quoteName('source_unavailable') . ' = 0') // G12 (2026-10-16): kaynağı erişilemeyen (kırık) görsel yok
             ->order($db->quoteName('ordering') . ' ASC');
         $db->setQuery($q);
         $images = (array)$db->loadObjectList();

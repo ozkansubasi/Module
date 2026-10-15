@@ -500,6 +500,7 @@ class ModNumistrIlgiliHelper
             ->whereIn($db->quoteName('i.coin_id'), array_values(array_unique(array_merge(...array_values($sahip)))))
             ->where('(' . $db->quoteName('i.license_ok') . ' = 1 OR (' . $db->quoteName('i.license_ok') . ' = 0 AND '
                 . $db->quoteName('i.license') . ' IS NOT NULL AND TRIM(' . $db->quoteName('i.license') . ") <> ''))")
+            ->where($db->quoteName('i.source_unavailable') . ' = 0') // 1.0.1 (G12): kaynağı erişilemeyen görsel kart olmaz
             ->order($db->quoteName(array('i.coin_id', 'i.ordering', 'i.image_id')));
         $db->setQuery($q);
         $ilk = array();
