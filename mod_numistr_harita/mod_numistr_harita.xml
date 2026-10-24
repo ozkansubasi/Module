@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_NUMISTR_HARITA</name>
+    <author>NumisTR</author>
+    <creationDate>2026-10-25</creationDate>
+    <copyright>Copyright (C) 2026 NumisTR. All rights reserved.</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <authorEmail>info@numistr.org</authorEmail>
+    <authorUrl>https://www.numistr.org</authorUrl>
+    <version>1.0.0</version>
+    <description>MOD_NUMISTR_HARITA_XML_DESCRIPTION</description>
+
+    <files>
+        <filename module="mod_numistr_harita">mod_numistr_harita.php</filename>
+        <folder>tmpl</folder>
+        <folder>language</folder>
+    </files>
+
+    <languages>
+        <language tag="en-GB">language/en-GB/mod_numistr_harita.ini</language>
+        <language tag="en-GB">language/en-GB/mod_numistr_harita.sys.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_harita.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_harita.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field name="harita" type="list" label="MOD_NUMISTR_HARITA_TUR_LABEL" default="sikke" validate="options">
+                    <option value="sikke">MOD_NUMISTR_HARITA_TUR_SIKKE</option>
+                    <option value="anadolu">MOD_NUMISTR_HARITA_TUR_ANADOLU</option>
+                </field>
+                <field name="api_key" type="text" label="MOD_NUMISTR_HARITA_ANAHTAR_LABEL" description="MOD_NUMISTR_HARITA_ANAHTAR_DESC" filter="string" required="true"/>
+            </fieldset>
+        </fields>
+    </config>
+</extension>
