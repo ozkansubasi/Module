@@ -75,6 +75,7 @@ namespace {
     class SahteDb
     {
         public $gorseller = array();
+        public $kolon = array();
 
         public function getQuery($yeni = false) { return $this; }
         public function __call($ad, $arg) { return $this; }
@@ -82,6 +83,7 @@ namespace {
         public function quote($x) { return "'" . $x . "'"; }
         public function setQuery($q) { return $this; }
         public function loadObjectList() { return $this->gorseller; }
+        public function loadColumn() { return $this->kolon; }
         public function loadResult() { return ''; }
     }
 
@@ -175,6 +177,28 @@ namespace {
     check('misafir → 1', $H::wmSec(true, array(10), 10) === 1);
     check('grup tanımsız (0) → 1', $H::wmSec(false, array(10), 0) === 1);
     check('popupWm: kimlik yok → 1', $H::popupWm(new SahteUygulama(1, null)) === 1);
+
+    // ---- EN → TR karşılık seçimi
+    check('görselli en küçük aday', $H::sahipSec(array(9468, 22614), array(22614, 9468)) === 9468);
+    check('küçük adayın görseli yoksa sonraki', $H::sahipSec(array('9468', '22614'), array(22614)) === 22614);
+    check('görselli aday yok → 0', $H::sahipSec(array(5, 6), array()) === 0);
+    check('aday yok → 0', $H::sahipSec(array(), array(1)) === 0);
+
+    // ---- DB katmanı (sahte DB): gruplama ve karşılık görselleri
+    $db = new SahteDb();
+    \Joomla\CMS\Factory::$db = $db;
+    $r = function ($coin, $img) { $o = g($img); $o->coin_id = $coin; return $o; };
+    $db->gorseller = array($r(3404, 1), $r(3404, 2));
+    check('gorseller: kendi görselleri', array_column($H::gorseller(3404), 'image_id') === array(1, 2));
+    check('gorseller: görsel yok → boş', $H::gorseller(9999) === array());
+    $db->kolon = array('22614', '9468');
+    $db->gorseller = array($r(9468, 5), $r(9468, 6), $r(22614, 7));
+    check('EN: en küçük görselli TR karşılığın görselleri', array_column($H::trKarsilikGorselleri(28213), 'image_id') === array(5, 6));
+    $db->kolon = array();
+    check('EN: karşılık yok → boş', $H::trKarsilikGorselleri(28213) === array());
+    $db->kolon = array('22614');
+    $db->gorseller = array();
+    check('EN: karşılığın görseli yok → boş', $H::trKarsilikGorselleri(28213) === array());
 
     // ---- eşdeğerlik: eski betik ↔ yeni şablon
     $set = array(

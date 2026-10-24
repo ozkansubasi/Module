@@ -4,6 +4,7 @@
  * @subpackage  mod_numistr_gallery
  *
  * Sikke görsel galerisi. Yalnız makale sayfasında (com_content, view=article) çalışır; görsel yoksa hiçbir şey basmaz.
+ * EN sayfada makalenin kendi görseli yoksa yayındaki TR karşılığınınkiler gösterilir (coin-id eşlemesi).
  * Önbellek yok: büyük görselin filigranı oturuma göre değişir (Pro → wm=2); ziyaretçi için sitenin sayfa önbelleği yeter.
  * Hata sayfayı asla düşürmez (günlüğe yazılır).
  */
@@ -31,6 +32,10 @@ if ($makaleId <= 0) {
 
 try {
     $gorseller = ModNumistrGalleryHelper::gorseller($makaleId);
+
+    if (!$gorseller && $app->getLanguage()->getTag() === 'en-GB') {
+        $gorseller = ModNumistrGalleryHelper::trKarsilikGorselleri($makaleId);
+    }
 
     if (!$gorseller) {
         return;

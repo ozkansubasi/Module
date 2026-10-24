@@ -9,6 +9,8 @@
  * <head>'den yüklenir, GLightbox sürümü sabit + SRI, sayfa başına günlük yazımı yok, kullanılmayan kapak sorgusu yok.
  *
  * Görseller: coins_images (coin_id = makale kimliği), G12 işaretli (source_unavailable) görseller hariç, ordering sırasıyla.
+ * EN sikke sayfası: coins_images yalnız TR ('*') kopyalara bağlı; görsel coin-id alanıyla yayındaki TR karşılıktan alınır
+ * (birden çok aday varsa görseli olan en küçük kimlik — mod_numistr_ilgili ile aynı eşleme). Eski betikte EN galeri yoktu.
  * Filigran: küçük görsel wm=0; büyük görsel wm=1, Pro oturumunda yalnız serbest lisanslı (license_ok=1) görselde wm=2
  * (ADR-006 Faz 2 + ADR-008 rev. 2026-09-25). Yetkiyi bileşen doğrular; burada yalnız adres seçilir.
  */
@@ -26,6 +28,8 @@ class ModNumistrGalleryHelper
     const GLIGHTBOX_JS_SRI  = 'sha384-MZZbZ6RXJudK43v1qY1zOWKOU2yfeBPatuFoKyHAaAgHTUZhwblRTc9CphTt4IGQ';
 
     const SURUM = '1.0.0';
+
+    const ALAN_SIKKE_KIMLIK = 'coin-id';
 
     // ------------------------------------------------------------------ saf mantık (DB'siz test edilir)
 
@@ -75,21 +79,81 @@ class ModNumistrGalleryHelper
         return (!$misafir && $proGrup > 0 && in_array((int) $proGrup, array_map('intval', $gruplar), true)) ? 2 : 1;
     }
 
+    /** TR karşılık adaylarından görseli olan en küçük kimlik; yoksa 0. */
+    public static function sahipSec(array $adaylar, array $gorselli)
+    {
+        $adaylar = array_map('intval', $adaylar);
+        $gorselli = array_map('intval', $gorselli);
+        sort($adaylar);
+
+        foreach ($adaylar as $a) {
+            if (in_array($a, $gorselli, true)) {
+                return $a;
+            }
+        }
+
+        return 0;
+    }
+
     // ------------------------------------------------------------------ Joomla'ya bağlı
 
     /** @return object[] */
     public static function gorseller($makaleId)
     {
+        return self::sikkelerinGorselleri(array((int) $makaleId))[(int) $makaleId] ?? array();
+    }
+
+    /** EN sikke sayfası: yayındaki TR karşılığın görselleri (coin-id eşlemesi); karşılık ya da görsel yoksa boş. */
+    public static function trKarsilikGorselleri($makaleId)
+    {
         $db = Factory::getDbo();
         $q  = $db->getQuery(true)
-            ->select($db->quoteName(array('image_id', 'image_type', 'weight', 'diameter', 'ordering', 'source_credit', 'license', 'license_ok')))
+            ->select('DISTINCT ' . $db->quoteName('c.id'))
+            ->from($db->quoteName('#__fields_values', 'e'))
+            ->join('INNER', $db->quoteName('#__fields', 'f') . ' ON ' . $db->quoteName('f.id') . ' = ' . $db->quoteName('e.field_id')
+                . ' AND ' . $db->quoteName('f.name') . ' = ' . $db->quote(self::ALAN_SIKKE_KIMLIK)
+                . ' AND ' . $db->quoteName('f.context') . ' = ' . $db->quote('com_content.article'))
+            ->join('INNER', $db->quoteName('#__content', 'ce') . ' ON ' . $db->quoteName('ce.id') . ' = ' . $db->quoteName('e.item_id')
+                . ' AND ' . $db->quoteName('ce.language') . ' = ' . $db->quote('en-GB'))
+            ->join('INNER', $db->quoteName('#__fields_values', 't') . ' ON ' . $db->quoteName('t.field_id') . ' = ' . $db->quoteName('e.field_id')
+                . ' AND ' . $db->quoteName('t.value') . ' = ' . $db->quoteName('e.value')
+                . ' AND ' . $db->quoteName('t.item_id') . ' <> ' . $db->quoteName('e.item_id'))
+            ->join('INNER', $db->quoteName('#__content', 'c') . ' ON ' . $db->quoteName('c.id') . ' = ' . $db->quoteName('t.item_id')
+                . ' AND ' . $db->quoteName('c.language') . ' = ' . $db->quote('*')
+                . ' AND ' . $db->quoteName('c.state') . ' = 1')
+            ->where($db->quoteName('e.item_id') . ' = ' . $db->quote((string) (int) $makaleId));
+        $db->setQuery($q);
+        $adaylar = array_map('intval', (array) $db->loadColumn());
+
+        if (!$adaylar) {
+            return array();
+        }
+
+        $grup  = self::sikkelerinGorselleri($adaylar);
+        $sahip = self::sahipSec($adaylar, array_keys($grup));
+
+        return $sahip ? $grup[$sahip] : array();
+    }
+
+    /** @return array<int, object[]>  sikke kimliği → görünür görselleri (ordering sırasıyla) */
+    private static function sikkelerinGorselleri(array $sikkeler)
+    {
+        $db = Factory::getDbo();
+        $q  = $db->getQuery(true)
+            ->select($db->quoteName(array('coin_id', 'image_id', 'image_type', 'weight', 'diameter', 'ordering', 'source_credit', 'license', 'license_ok')))
             ->from($db->quoteName('coins_images'))
-            ->where($db->quoteName('coin_id') . ' = ' . (int) $makaleId)
+            ->where($db->quoteName('coin_id') . ' IN (' . implode(',', array_map('intval', $sikkeler)) . ')')
             ->where($db->quoteName('source_unavailable') . ' = 0')
-            ->order($db->quoteName('ordering') . ' ASC');
+            ->order($db->quoteName('coin_id') . ' ASC, ' . $db->quoteName('ordering') . ' ASC');
         $db->setQuery($q);
 
-        return (array) $db->loadObjectList();
+        $grup = array();
+
+        foreach ((array) $db->loadObjectList() as $r) {
+            $grup[(int) $r->coin_id][] = $r;
+        }
+
+        return $grup;
     }
 
     public static function popupWm($app)
