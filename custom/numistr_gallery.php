@@ -11,13 +11,7 @@ function numistr_render_gallery() {
     if ($coin_id <= 0) return;
 
     try {
-        // --- DEBUG LOG (isteğe bağlı) ---
-        $logFile = JPATH_SITE . '/logs/numistr_gallery_debug.log';
-        $log = function(string $msg) use ($logFile) {
-            @error_log(date('c') . ' ' . $msg . PHP_EOL, 3, $logFile);
-        };
-        $log("BEGIN coin_id={$coin_id}");
-
+        // 2026-10-25: sayfa başına hata ayıklama günlüğü kaldırıldı (logs/ herkese açıktı, 97,8 MB). Yalnız istisna yazılır.
         $db = Factory::getDbo();
 
         // Görselleri çek
@@ -30,7 +24,7 @@ function numistr_render_gallery() {
         $db->setQuery($q);
         $images = (array)$db->loadObjectList();
 
-        if (!$images) { $log('END (no images)'); return; }
+        if (!$images) { return; }
 
         // Custom field: sikke-gorsel-url → http/https ve com_numistr içermiyorsa kapakta dış URL
         $coverOverride = null;
@@ -47,9 +41,7 @@ function numistr_render_gallery() {
             if ($cv !== '' && preg_match('~^https?://~i', $cv) && stripos($cv, 'option=com_numistr') === false) {
                 $coverOverride = $cv;
             }
-            if ($coverOverride) { $log('cover_override=' . $coverOverride); }
         } catch (\Throwable $e) {
-            $log('cover_override_err=' . $e->getMessage());
         }
 
         // ---------- GLightbox CSS & JS (tek sefer yükle) ----------
@@ -285,8 +277,6 @@ function numistr_render_gallery() {
   .gallery-item.pair img{max-width:100%;}
 }
 </style>';
-
-        $log('END (rendered)');
     } catch (\Throwable $e) {
         try {
             $logFile = JPATH_SITE . '/logs/numistr_gallery_debug.log';
