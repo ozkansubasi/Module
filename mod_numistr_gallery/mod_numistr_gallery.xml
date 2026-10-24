@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_NUMISTR_GALLERY</name>
+    <author>NumisTR</author>
+    <creationDate>2026-10-25</creationDate>
+    <copyright>Copyright (C) 2026 NumisTR. All rights reserved.</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <authorEmail>info@numistr.org</authorEmail>
+    <authorUrl>https://www.numistr.org</authorUrl>
+    <version>1.0.0</version>
+    <description>MOD_NUMISTR_GALLERY_XML_DESCRIPTION</description>
+
+    <files>
+        <filename module="mod_numistr_gallery">mod_numistr_gallery.php</filename>
+        <filename>helper.php</filename>
+        <folder>tmpl</folder>
+        <folder>assets</folder>
+        <folder>language</folder>
+    </files>
+
+    <languages>
+        <language tag="en-GB">language/en-GB/mod_numistr_gallery.ini</language>
+        <language tag="en-GB">language/en-GB/mod_numistr_gallery.sys.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_gallery.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_gallery.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="advanced">
+                <field name="layout" type="modulelayout" label="JFIELD_ALT_LAYOUT_LABEL" class="form-select" validate="moduleLayout"/>
+                <field name="moduleclass_sfx" type="textarea" label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL" rows="3" validate="CssIdentifier"/>
+            </fieldset>
+        </fields>
+    </config>
+</extension>
