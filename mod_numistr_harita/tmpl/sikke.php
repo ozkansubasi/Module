@@ -119,8 +119,9 @@ function initSingleLocationMap() {
             } 
             return null; 
         } 
-        const mintNameElement = findElementByLabel('Darphane'); 
-        const coordinatesElement = findElementByLabel('Darphane Koordinatları'); 
+        // 2026-10-25: EN sayfada başlıklar "Mint" / "Mint Coordinates" — yalnız TR aranınca EN sikke sayfalarında harita hiç çizilmiyordu.
+        const mintNameElement = findElementByLabel('Darphane') || findElementByLabel('Mint');
+        const coordinatesElement = findElementByLabel('Darphane Koordinatları') || findElementByLabel('Mint Coordinates');
         if (!coordinatesElement || !mintNameElement) { 
             console.error("Harita için darphane adı veya koordinat elementi sayfada bulunamadı."); 
             return; 

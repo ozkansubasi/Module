@@ -65,6 +65,8 @@ namespace {
     check('sikke: başka harita yok', strpos($c, 'google-antik-harita') === false);
     check('sikke: script etiketleri dengeli', substr_count($c, '<script') === substr_count($c, '</script>'));
     check('sikke: mod_custom kapanışı', substr(rtrim($c), -10) === '</p></div>');
+    check('sikke: TR ve EN başlıklarla arar (EN sayfada harita)', strpos($c, "findElementByLabel('Darphane') || findElementByLabel('Mint')") !== false
+        && strpos($c, "findElementByLabel('Darphane Koordinatları') || findElementByLabel('Mint Coordinates')") !== false);
 
     // ---- Anadolu haritası
     $c = bas(array('harita' => 'anadolu', 'api_key' => 'TEST_anahtar-1'));
