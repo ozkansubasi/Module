@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Account Module
  * @subpackage  mod_numistr_account
- * @version     1.2.0
+ * @version     1.2.1
  * @copyright   Copyright (C) 2026 NumisTR. All rights reserved.
  * @license     GNU General Public License version 2 or later
  *
@@ -48,7 +48,11 @@ $urls = [
     'plans'    => Uri::root(true) . $plansPath,
     'pro_buy'  => $proBuyUrl !== '' ? $proBuyUrl : Uri::root(true) . $plansPath,
     'play'     => (string) $params->get('play_url', 'https://play.google.com/store/apps/details?id=com.anatoliancoins.app'),
-    'appstore' => (string) $params->get('appstore_url', ''),
+    // TR sayfada ayrı adres (C8): Apple'ın web sayfası Türkiye mağazasında da İngilizce açılır,
+    // Türkçe için `/tr/...?l=tr` gerekir. Boşsa ortak adrese düşer.
+    'appstore' => ($lang === 'tr' && trim((string) $params->get('appstore_url_tr', '')) !== '')
+        ? trim((string) $params->get('appstore_url_tr', ''))
+        : (string) $params->get('appstore_url', ''),
     'manage_play'  => 'https://play.google.com/store/account/subscriptions',
     'manage_apple' => 'https://apps.apple.com/account/subscriptions',
     'delete'   => 'mailto:' . (string) $params->get('support_email', 'bilgi@numistr.org')
