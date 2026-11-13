@@ -28,6 +28,8 @@
         storageKey: 'numistr_assistant_conv', // localStorage: { tr: id, en: id }
         restoreHistory: true,
         recognizeEnabled: true,
+        isGuest: false, // mod_numistr_chat doldurur (2.3.0): girissizde fotograf -> giris formu
+        loginUrl: '/index.php?option=com_ajax&plugin=numistrauth&format=raw&task=login',
         csrfToken: '' // mod_numistr_chat doldurur (Session::getFormToken)
     }, window.NumisTRAssistantConfig || {}); // mod_numistr_chat passes its params here
 
@@ -81,6 +83,7 @@
             badgePro: 'PRO',
             photo: 'Fotoğraf yükle',
             photoSent: '[fotoğraf yüklendi]',
+            recognizeLogin: 'Fotoğraftan sikke tanıma için giriş yapmanız gerekiyor. Giriş sayfasına yönlendiriliyorsunuz…',
             photoTooBig: 'Fotoğraf çok büyük (en fazla 5 MB). Lütfen daha küçük bir dosya seçin.',
             photoStaleToken: 'Oturum bilgisi eskimiş. Lütfen sayfayı yenileyip tekrar deneyin.',
             scansLeft: 'Kalan tanıma: {n}',
@@ -108,6 +111,7 @@
             badgePro: 'PRO',
             photo: 'Upload a photo',
             photoSent: '[photo uploaded]',
+            recognizeLogin: 'You need to sign in to identify a coin from a photo. Taking you to the sign-in page…',
             photoTooBig: 'The photo is too large (5 MB max). Please choose a smaller file.',
             photoStaleToken: 'Your session token is stale. Please refresh the page and try again.',
             scansLeft: 'Recognitions left: {n}',
@@ -627,7 +631,25 @@
         const historyList = historyPanel ? historyPanel.querySelector('.numistr-history-list') : null;
 
         // Kimlik rozeti: anonimde gizli, uyede "Uye", Pro'da altin "PRO".
+        // Sunucunun son bildirdigi kimlik ('anon' | 'user' | 'pro'); bilinmiyorsa sayfanin bayragi.
+        let knownIdentity = null;
+
+        function isGuestNow() {
+            return knownIdentity ? knownIdentity === 'anon' : CONFIG.isGuest === true;
+        }
+
+        // 2.3.0: fotograftan tanima uyelere ozel -> ileti + kisa beklemeyle giris formu
+        // (donus adresi bu sayfa; sohbet localStorage'daki conversation_id ile surer).
+        function goToLogin(text) {
+            addMessage(text || T.recognizeLogin, 'bot', { cta: { login_url: CONFIG.loginUrl } });
+
+            if (CONFIG.loginUrl) {
+                setTimeout(function() { window.location.href = withReturn(CONFIG.loginUrl); }, 2500);
+            }
+        }
+
         function setIdentity(type) {
+            if (type) { knownIdentity = type; }
             if (!badge) { return; }
 
             if (type === 'pro') {
@@ -738,7 +760,11 @@
                 setIdentity(data.identity);
 
                 if (!data.ok) {
-                    // auth_required / scan_quota / error -> sunucunun metni + CTA
+                    if (data.reason === 'auth_required') {
+                        goToLogin(data.answer);
+                        return;
+                    }
+                    // scan_quota / rate_limit / error -> sunucunun metni + CTA
                     addMessage(data.answer || T.error, 'bot', data.cta ? { cta: data.cta } : null);
                     return;
                 }
@@ -769,7 +795,14 @@
         }
 
         if (photoBtn && photoInput) {
-            photoBtn.addEventListener('click', function() { photoInput.click(); });
+            photoBtn.addEventListener('click', function() {
+                // Girissiz: dosya secici acilmaz, fotograf sunucuya gitmez.
+                if (isGuestNow()) {
+                    goToLogin(T.recognizeLogin);
+                    return;
+                }
+                photoInput.click();
+            });
 
             photoInput.addEventListener('change', function() {
                 const file = photoInput.files && photoInput.files[0];

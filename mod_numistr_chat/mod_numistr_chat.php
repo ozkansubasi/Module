@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Chat Module
  * @subpackage  mod_numistr_chat
- * @version     2.2.0
+ * @version     2.3.0
  * @copyright   Copyright (C) 2025-2026 NumisTR. All rights reserved.
  * @license     GNU General Public License version 2 or later
  *
@@ -15,10 +15,13 @@
  *         Yeni: kimlik rozeti (Uye/PRO), giris + ucretsiz uyelik CTA'lari,
  *         gecmis paneli (konusma listesi / acma / arsivleme) ve Pro'da gunluk
  *         mesaj sayacinin gizlenmesi.
+ * v2.3.0: (14 Kas 2026) Girissiz ziyaretci fotograf dugmesine basinca dosya secici acilmaz;
+ *         "giris gerekli" denir ve giris formuna (donus adresiyle) yonlendirilir.
  */
 
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
 use Joomla\CMS\Session\Session;
 
@@ -54,6 +57,9 @@ if ($apiBase === '/api/index.php/v1/assistant') {
 // (Yukaridaki gecis disinda) elle girilmis her deger oldugu gibi kullanilir.
 $apiMode = strpos($apiBase, 'option=com_ajax') !== false ? 'bridge' : 'rest';
 
+$identity = Factory::getApplication()->getIdentity();
+$isGuest  = !$identity || (int) $identity->id <= 0;
+
 $assistantConfig = [
     // koprude sondaki '/' anlamli degil; yalnizca REST ucunda kirpilir
     'apiBase'        => $apiMode === 'rest' ? rtrim($apiBase, '/') : $apiBase,
@@ -63,6 +69,11 @@ $assistantConfig = [
     // jeton bayat olabilir -> uc 403 doner, widget "sayfayi yenileyin" der.
     'csrfToken'      => Session::getFormToken(),
     'recognizeEnabled' => (int) $params->get('recognize_enabled', 1) === 1,
+    // 2.3.0: fotograftan tanima uyelere ozel. Girissiz ziyaretci fotograf dugmesine basinca
+    // dosya secici acilmaz, giris formuna yonlendirilir. Joomla sayfa onbellegi yalniz
+    // misafirlere sunulur (giris yapmis kullaniciya onbellekli sayfa gitmez) -> bayrak dogru kalir.
+    'isGuest'        => $isGuest,
+    'loginUrl'       => '/index.php?option=com_ajax&plugin=numistrauth&format=raw&task=login',
     'position'       => $widgetPosition,
     'primaryColor'   => $primaryColor,
     'secondaryColor' => $secondaryColor,
