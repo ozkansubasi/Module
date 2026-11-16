@@ -1,5 +1,5 @@
 /*!
- * NumisTR site araması — sonuç sayfası (mod_numistr_arama 1.0.0, 16 Kas 2026)
+ * NumisTR site araması — sonuç sayfası (mod_numistr_arama 1.0.1, 16 Kas 2026)
  * Veri: GET /api/index.php/v1/search (plg_webservices_numistr 1.26.0). Toplam sonuç sayısı gösterilmez.
  * DOM yalnız textContent ile kurulur (API verisi HTML olarak basılmaz).
  * Saf işlevler Node ile test edilir: node Module/tests/arama_js_test.js
@@ -120,6 +120,13 @@
       + '&type=' + encodeURIComponent(type || 'all') + (offset ? '&offset=' + (offset | 0) : '');
   }
 
+  /** "Ön yüz: Kanatlı at" + "Arka yüz: …" → "Ön yüz: Kanatlı at. Arka yüz: …" (zaten noktalıysa ek nokta yok). */
+  function joinDesc(a, b) {
+    a = String(a || '').trim(); b = String(b || '').trim();
+    if (!a || !b) { return a || b; }
+    return (/[.!?…;:]$/.test(a) ? a : a + '.') + ' ' + b;
+  }
+
   /** Yalnız http(s) adresleri bağlantı/görsel olur. */
   function safeUrl(u) {
     u = String(u || '');
@@ -163,7 +170,13 @@
     var parts = [];
     if (it.mint) { parts.push(mintLabel(it.mint)); }
     if (it.material) { parts.push(materialLabel(it.material, lang)); }
-    appendHighlighted(doc, l1, parts.join(' · ') || it.title, q);
+    if (it.mint && it.match === 'mint') {
+      // darphane eşleşmesi: ad Latince yazılsa da (lampsakos → Lampsacus) vurgulanır
+      l1.appendChild(el(doc, 'mark', 'nma-hit', parts[0]));
+      if (parts.length > 1) { l1.appendChild(doc.createTextNode(' · ' + parts.slice(1).join(' · '))); }
+    } else {
+      appendHighlighted(doc, l1, parts.join(' · ') || it.title, q);
+    }
     body.appendChild(l1);
     var meta = [];
     if (it.authority) { meta.push(it.authority); }
@@ -176,12 +189,10 @@
       appendHighlighted(doc, l2, meta.join(' · '), q);
       body.appendChild(l2);
     }
-    var desc = [];
-    if (it.obverse) { desc.push(s.obverse + ': ' + it.obverse); }
-    if (it.reverse) { desc.push(s.reverse + ': ' + it.reverse); }
-    if (desc.length) {
+    var desc = joinDesc(it.obverse ? s.obverse + ': ' + it.obverse : '', it.reverse ? s.reverse + ': ' + it.reverse : '');
+    if (desc) {
       var l3 = el(doc, 'span', 'nma-coin-desc');
-      appendHighlighted(doc, l3, desc.join(' '), q);
+      appendHighlighted(doc, l3, desc, q);
       body.appendChild(l3);
     }
     if (parts.length) {
@@ -349,6 +360,6 @@
 
   return {
     regionLabel: regionLabel, mintLabel: mintLabel, materialLabel: materialLabel, dateLabel: dateLabel,
-    highlightParts: highlightParts, buildUrl: buildUrl, safeUrl: safeUrl, trLower: trLower, boot: boot
+    highlightParts: highlightParts, joinDesc: joinDesc, buildUrl: buildUrl, safeUrl: safeUrl, trLower: trLower, boot: boot
   };
 });

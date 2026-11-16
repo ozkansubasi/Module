@@ -43,6 +43,11 @@ check('vurgu: Türkçe büyük İ', hp('İSKENDER başı', 'iskender') === '[İS
 check('vurgu: boş sorgu', hp('metin', '') === 'metin');
 check('vurgu: uzunluk korunur', L.highlightParts('IŞIK ışık', 'ışık').map(p => p.t).join('') === 'IŞIK ışık');
 
+// betim birleştirme
+check('joinDesc: nokta eklenir', L.joinDesc('Ön yüz: Kanatlı at', 'Arka yüz: Kare') === 'Ön yüz: Kanatlı at. Arka yüz: Kare');
+check('joinDesc: zaten noktalı', L.joinDesc('Ön yüz: At.', 'Arka yüz: Kare') === 'Ön yüz: At. Arka yüz: Kare');
+check('joinDesc: tek taraf', L.joinDesc('', 'Arka yüz: Kare') === 'Arka yüz: Kare' && L.joinDesc('Ön yüz: At', '') === 'Ön yüz: At');
+
 // adres
 check('buildUrl', L.buildUrl('/api/index.php/v1/search', 'kanatlı at', 'tr', 'coins', 12)
   === '/api/index.php/v1/search?q=kanatl%C4%B1%20at&lang=tr&type=coins&offset=12');
