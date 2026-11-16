@@ -57,16 +57,48 @@ namespace {
 
     $sarmal = '<div class="uk-margin-remove-last-child custom" ><p>';
 
-    // ---- sikke detay haritası
+    // ---- sikke detay haritası (1.1.0, C14)
     $c = bas(array('harita' => 'sikke', 'api_key' => 'TEST_anahtar-1'));
-    check('sikke: sarmalayıcıyla başlar', strpos($c, $sarmal) === 0);
-    check('sikke: harita kabı', substr_count($c, 'id="single-mint-map"') === 1);
-    check('sikke: anahtar ayardan', substr_count($c, 'maps/api/js?key=TEST_anahtar-1&callback=initSingleLocationMap') === 1);
+    check('sikke: sarmalayıcıyla başlar', strpos($c, '<div class="uk-margin-remove-last-child custom nmh-sikke">') === 0);
+    check('sikke: harita kabı, anahtar ayardan', substr_count($c, '<div id="single-mint-map" data-key="TEST_anahtar-1">') === 1);
     check('sikke: başka harita yok', strpos($c, 'google-antik-harita') === false);
     check('sikke: script etiketleri dengeli', substr_count($c, '<script') === substr_count($c, '</script>'));
-    check('sikke: mod_custom kapanışı', substr(rtrim($c), -10) === '</p></div>');
-    check('sikke: TR ve EN başlıklarla arar (EN sayfada harita)', strpos($c, "findElementByLabel('Darphane') || findElementByLabel('Mint')") !== false
-        && strpos($c, "findElementByLabel('Darphane Koordinatları') || findElementByLabel('Mint Coordinates')") !== false);
+    check('sikke: kapanış', substr(rtrim($c), -6) === '</div>');
+    check('sikke: TR ve EN başlıklarla arar', strpos($c, "satir(['Darphane', 'Mint'])") !== false
+        && strpos($c, "satir(['Darphane Koordinatları', 'Mint Coordinates'])") !== false);
+    check('sikke: Maps sayfa açılışında yüklenmez (script etiketi yok)', strpos($c, '<script async src="https://maps.googleapis.com') === false
+        && strpos($c, 'IntersectionObserver') !== false && strpos($c, '&loading=async') !== false);
+    check('sikke: kullanımdan kalkan google.maps.Marker yok', strpos($c, 'Marker(') === false);
+    check('sikke: 500 ms bekleme yok', strpos($c, '}, 500)') === false);
+    check('sikke: yerleşim kaydı /v1/locations ucundan', strpos($c, "'/api/index.php/v1/locations?ne_lat='") !== false
+        && strpos($c, "'/api/index.php/v1/locations/' + encodeURIComponent(id)") !== false);
+    check('sikke: koda gömülü darphane açıklaması kalmadı', strpos($c, 'mintDescriptions') === false);
+
+    // Kentler: modüldeki veri = uygulamanın listesi = Antik Harita sayfasındaki liste (tek kaynak, C14 c)
+    $modulVeri = json_decode(file_get_contents(__DIR__ . '/../mod_numistr_harita/data/ancient_major_cities.json'), true);
+    check('kentler: modül verisi 130 kent', is_array($modulVeri) && count($modulVeri) === 130);
+    preg_match('/var VERI = (\{.*?\});/s', $c, $m);
+    $gomulu = isset($m[1]) ? json_decode($m[1], true) : null;
+    $bekle = array_map(function ($k) { return array($k['name'], round($k['lat'], 3), round($k['lng'], 3)); }, (array) $modulVeri);
+    check('kentler: sayfaya gömülen liste = modül verisi', is_array($gomulu) && $gomulu['cities'] == $bekle, isset($m[1]) ? '' : 'VERI yok');
+    $uyg = __DIR__ . '/../../anatolian_coins_flutter/assets/data/ancient_major_cities.json';
+    if (is_file($uyg)) {
+        check('kentler: uygulamadaki dosyayla bayt bayt aynı', sha1_file($uyg) === sha1_file(__DIR__ . '/../mod_numistr_harita/data/ancient_major_cities.json'));
+    } else {
+        echo "  --   kentler: uygulama deposu yok, karşılaştırma atlandı\n";
+    }
+    $ana = file_get_contents(__DIR__ . '/../mod_numistr_harita/tmpl/anadolu.php');
+    preg_match_all('/name: "([^"]+)", lat: ([\d.]+), lng: ([\d.]+)/', substr($ana, strpos($ana, 'const majorCities')), $mm, PREG_SET_ORDER);
+    $anaListe = array_map(function ($x) { return array($x[1], round((float) $x[2], 3), round((float) $x[3], 3)); }, $mm);
+    check('kentler: Antik Harita sayfasındaki listeyle aynı', $anaListe == $bekle, count($anaListe) . ' kent');
+
+    // Bozuk veri dosyası sayfayı kırmaz
+    $yedek = __DIR__ . '/../mod_numistr_harita/data/ancient_major_cities.json';
+    $icerik = file_get_contents($yedek);
+    file_put_contents($yedek, '{bozuk');
+    $c2 = bas(array('harita' => 'sikke', 'api_key' => 'K'));
+    file_put_contents($yedek, $icerik);
+    check('kentler: veri okunamazsa boş listeyle çizer', strpos($c2, 'var VERI = {"cities":[]};') !== false);
 
     // ---- Anadolu haritası
     $c = bas(array('harita' => 'anadolu', 'api_key' => 'TEST_anahtar-1'));
@@ -85,7 +117,8 @@ namespace {
         check("$h: kaçışlı kod yok", strpos($c, '&lt;script') === false && strpos($c, '&lt;style') === false);
         check("$h: gömülü Google anahtarı yok", strpos(file_get_contents(__DIR__ . "/../mod_numistr_harita/tmpl/$h.php"), 'AIza') === false);
     }
-    check('anahtar kaçışlı basılır', strpos(bas(array('harita' => 'sikke', 'api_key' => 'a"b<c')), 'key=a&quot;b&lt;c&') !== false);
+    check('sikke: anahtar kaçışlı basılır', strpos(bas(array('harita' => 'sikke', 'api_key' => 'a"b<c')), 'data-key="a&quot;b&lt;c"') !== false);
+    check('anadolu: anahtar kaçışlı basılır', strpos(bas(array('harita' => 'anadolu', 'api_key' => 'a"b<c')), 'key=a&quot;b&lt;c&') !== false);
 
     // ---- eksik ayar
     Joomla\CMS\Log\Log::$kayitlar = array();

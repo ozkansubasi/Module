@@ -3,369 +3,394 @@
  * @package     NumisTR
  * @subpackage  mod_numistr_harita
  *
- * Sikke detay sayfasının darphane haritası (eski Custom modül #130, YOOtheme "Sikke Layout" şablonları).
- * İşaretleme Sourcerer'ın #130 Custom modülünden ürettiği çıktının birebir kopyasıdır (2026-10-25 canlıdan alındı);
- * yalnız Google Maps anahtarı modül ayarından gelir.
- * Sarmalayıcı <div class="… custom"><p> mod_custom düzeninden; boşluklar dahil korunur (görünüm aynı kalsın).
+ * Sikke detay sayfasının darphane haritası (modül #130, YOOtheme "Sikke Layout" şablonları). 1.1.0 (C14, 16 Kas 2026):
+ *  - Sikkenin darphanesi vurgulu işaret + adıyla; tıklanınca en yakın darphane kaydının özeti ve yazı bağlantısı.
+ *  - Bölgelerin önemli antik kentleri (130; uygulamanın `assets/data/ancient_major_cities.json` dosyasıyla aynı veri,
+ *    `data/ancient_major_cities.json`). Adlar birbirinin üstüne binmez; tıklanınca en yakın yerleşim kaydı (5 km)
+ *    özet + yazı bağlantısıyla açılır. Kayıtlar Antik Harita sayfasıyla aynı uçtan gelir (`/v1/locations`).
+ *  - Google Maps yalnız harita görünür alana yaklaşınca yüklenir (her yükleme ücretli kalem).
+ *  - `google.maps.Marker` (kullanımdan kalkıyor) yok: işaretler OverlayView + HTML; harita biçemi (styles) korunur,
+ *    AdvancedMarkerElement'in istediği Map ID gerekmez.
+ *  - Koordinat sayfadaki "Darphane Koordinatları" / "Mint Coordinates" satırından okunur; ters yazılmışsa
+ *    (boylam,enlem) Anadolu aralığına ve sayfanın bölgesine bakılarak düzeltilir.
+ * Antik Harita sayfası (anadolu.php) bu sürümde değişmez.
  */
 
 defined('_JEXEC') or die;
 
 $h = function ($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); };
+
+$kentler = array();
+$kaynak  = @file_get_contents(__DIR__ . '/../data/ancient_major_cities.json');
+$liste   = is_string($kaynak) ? json_decode($kaynak, true) : null;
+
+if (is_array($liste)) {
+    foreach ($liste as $k) {
+        if (isset($k['name'], $k['lat'], $k['lng']) && is_numeric($k['lat']) && is_numeric($k['lng'])) {
+            $kentler[] = array((string) $k['name'], round((float) $k['lat'], 3), round((float) $k['lng'], 3));
+        }
+    }
+}
+
+$veri = (string) json_encode(
+    array('cities' => $kentler),
+    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+);
 ?>
-<div class="uk-margin-remove-last-child custom" ><p> 
-<style> 
-    /* Haritanın kendisi için genel stil */ 
-    #single-mint-map { 
-        width: 100%; 
-        height: 400px; 
-        position: relative; 
-        overflow: hidden; 
-        border-radius: 8px; 
-    } 
-    /* Bizim özel popup penceremiz */ 
-    .custom-popup-window { 
-        position: absolute; 
-        background: #FCF5ED; 
-        padding: 15px; 
-        border-radius: 8px; 
-        box-shadow: 0 5px 15px rgba(0,0,0,0.3); 
-        min-width: 200px; 
-        max-width: 300px; 
-        font-family: sans-serif; 
-        display: none; 
-        transform: translate(-50%, calc(-100% - 15px)); 
-        z-index: 1000; 
-    } 
-    .custom-popup-window::after { 
-        content: ''; 
-        position: absolute; 
-        bottom: -10px; 
-        left: 50%; 
-        transform: translateX(-50%); 
-        width: 0; height: 0; 
-        border-left: 10px solid transparent; 
-        border-right: 10px solid transparent; 
-        border-top: 10px solid #FCF5ED; 
-    } 
-    .custom-popup-close-button { 
-        position: absolute; 
-        top: 8px; 
-        right: 8px; 
-        width: 20px; 
-        height: 20px; 
-        cursor: pointer; 
-        opacity: 0.7; 
-    } 
-    .custom-popup-close-button:hover { opacity: 1; } 
-    .custom-popup-content h3 { margin: 0 0 8px 0; font-size: 16px; color: #333; } 
-    .custom-popup-content p { margin: 0; font-size: 13px; line-height: 1.4; color: #555; } 
-</style> 
-<!-- 2. Haritanın Yükleneceği HTML Alanı --> 
-<div id="single-mint-map"></div> 
-<!-- 3. Haritayı ve Özel Popup'ı Çalıştıran JavaScript --> 
-<script> 
-function initSingleLocationMap() { 
-    setTimeout(function() { 
+<div class="uk-margin-remove-last-child custom nmh-sikke">
+<style>
+.nmh-sikke #single-mint-map{position:relative;width:100%;height:400px;overflow:hidden;border-radius:8px;background:#f3e0c5}
+.nmh-sikke .nmh-yer{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;color:#6d4c41;font-size:14px}
+.nmh-sikke .nmh-bolge{position:absolute;transform:translate(-50%,-50%);font-weight:700;font-size:13px;line-height:1;letter-spacing:.12em;color:rgba(109,76,65,.78);white-space:nowrap;pointer-events:none;text-shadow:0 0 3px #f3e0c5,0 0 3px #f3e0c5}
+.nmh-sikke .nmh-kent,.nmh-sikke .nmh-darphane{position:absolute;display:flex;align-items:center;gap:5px;margin:0;padding:0;border:0;background:none;cursor:pointer;font-family:inherit;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.nmh-sikke .nmh-kent{transform:translate(-5px,-50%);font-size:12px;font-weight:600;line-height:1.2;color:#4e342e}
+.nmh-sikke .nmh-kent .nmh-nokta{flex:none;box-sizing:border-box;width:9px;height:9px;border-radius:50%;background:#fcf5ed;border:2px solid #8d6e63}
+.nmh-sikke .nmh-kent .nmh-ad{text-shadow:0 0 3px #fcf5ed,0 0 3px #fcf5ed,0 0 2px #fcf5ed}
+.nmh-sikke .nmh-kent:hover .nmh-ad,.nmh-sikke .nmh-kent:focus-visible .nmh-ad{text-decoration:underline}
+.nmh-sikke .nmh-darphane{z-index:5;transform:translate(-11px,-50%);font-size:14px;font-weight:700;line-height:1.2;color:#3e2723}
+.nmh-sikke .nmh-darphane .nmh-nokta{flex:none;box-sizing:border-box;width:22px;height:22px;border-radius:50%;background:#b7791f;border:4px solid #fcf5ed;box-shadow:0 0 0 2px #7b5307,0 2px 6px rgba(0,0,0,.35)}
+.nmh-sikke .nmh-darphane .nmh-ad{padding:3px 9px;border-radius:12px;background:#fcf5ed;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.nmh-sikke .nmh-kent:focus-visible,.nmh-sikke .nmh-darphane:focus-visible{outline:2px solid #8a5f1a;outline-offset:2px}
+.nmh-sikke .nmh-gizli{visibility:hidden}
+.nmh-sikke .nmh-kart{position:absolute;z-index:10;box-sizing:border-box;width:260px;max-width:72vw;padding:14px 16px;border-radius:8px;background:#fcf5ed;box-shadow:0 5px 15px rgba(0,0,0,.3);transform:translate(-50%,calc(-100% - 18px));cursor:auto;white-space:normal}
+.nmh-sikke .nmh-kart::after{content:'';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);border-left:10px solid transparent;border-right:10px solid transparent;border-top:10px solid #fcf5ed}
+.nmh-sikke .nmh-tur{display:block;margin-bottom:2px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8a5f1a}
+.nmh-sikke .nmh-kart h3{margin:0 24px 6px 0;font-size:16px;line-height:1.3;color:#333}
+.nmh-sikke .nmh-ozet{margin:0;font-size:13px;line-height:1.45;color:#555;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden}
+.nmh-sikke .nmh-bag{display:inline-block;margin-top:8px;font-size:13px;font-weight:600;color:#8a5f1a}
+.nmh-sikke .nmh-kapat{position:absolute;top:4px;right:4px;width:32px;height:32px;padding:0;border:0;background:none;cursor:pointer;color:#6d4c41;font-size:22px;line-height:1}
+</style>
+<div id="single-mint-map" data-key="<?php echo $h($anahtar); ?>"><div class="nmh-yer"></div></div>
+<script>
+(function () {
+    'use strict';
 
- 
-        // Dil algılama - Joomla sayfasının diline göre 
-        const currentLang = document.documentElement.lang || 'tr'; 
-        const isEnglish = currentLang.toLowerCase().startsWith('en'); 
+    var KAP = document.getElementById('single-mint-map');
+    if (!KAP || KAP.getAttribute('data-nmh') === '1') { return; }
+    KAP.setAttribute('data-nmh', '1');
 
- 
-        class CustomInfoWindow extends google.maps.OverlayView { 
-            constructor() { 
-                super(); 
-                this.div = document.createElement('div'); 
-                this.div.className = 'custom-popup-window'; 
-                this.div.innerHTML = ` 
-                    <svg class="custom-popup-close-button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#6D4C41" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> 
-                    <div class="custom-popup-content"><h3 id="popup-title-custom"></h3><p id="popup-desc-custom"></p></div> 
-                `; 
-                this.contentTitle = this.div.querySelector('#popup-title-custom'); 
-                this.contentDesc = this.div.querySelector('#popup-desc-custom'); 
-                this.closeButton = this.div.querySelector('.custom-popup-close-button'); 
-                this.closeButton.onclick = () => { this.close(); }; 
-            } 
-            onAdd() { if (this.getPanes()) this.getPanes().floatPane.appendChild(this.div); } 
-            onRemove() { if (this.div.parentElement) this.div.parentElement.removeChild(this.div); } 
-            draw() { 
-                const pos = this.get('position'); 
-                if (pos && this.getProjection()) { 
-                    const point = this.getProjection().fromLatLngToDivPixel(pos); 
-                    this.div.style.left = point.x + 'px'; 
-                    this.div.style.top = point.y + 'px'; 
-                } 
-            } 
-            open(map, marker) { this.set('position', marker.getPosition()); this.setMap(map); this.div.style.display = 'block'; } 
-            close() { this.setMap(null); this.div.style.display = 'none'; } 
-            setContent(title, desc) { 
-                this.contentTitle.textContent = title; 
-                this.contentDesc.textContent = desc || ''; 
-                // Açıklama yoksa paragrafı gizle 
-                this.contentDesc.style.display = desc ? 'block' : 'none'; 
-            } 
-        } 
-        function findElementByLabel(label) { 
-            const allElements = document.querySelectorAll('.el-title'); 
-            for (const element of allElements) { 
-                if (element.textContent.trim().includes(label)) { 
-                    const parentListItem = element.closest('.el-item'); 
-                    if (parentListItem) { 
-                        return parentListItem.querySelector('.el-content'); 
-                    } 
-                } 
-            } 
-            return null; 
-        } 
-        // 2026-10-25: EN sayfada başlıklar "Mint" / "Mint Coordinates" — yalnız TR aranınca EN sikke sayfalarında harita hiç çizilmiyordu.
-        const mintNameElement = findElementByLabel('Darphane') || findElementByLabel('Mint');
-        const coordinatesElement = findElementByLabel('Darphane Koordinatları') || findElementByLabel('Mint Coordinates');
-        if (!coordinatesElement || !mintNameElement) { 
-            console.error("Harita için darphane adı veya koordinat elementi sayfada bulunamadı."); 
-            return; 
-        } 
-        const name = mintNameElement.textContent.trim(); 
-        const coordsString = coordinatesElement.textContent.trim(); 
+    var VERI = <?php echo $veri; ?>;
+    var EN = (document.documentElement.lang || 'tr').toLowerCase().indexOf('en') === 0;
+    var DIL = EN ? 'en' : 'tr';
+    var T = EN ? {
+        harita: 'Mint map', yukleniyor: 'Loading the map…', hata: 'The map cannot be loaded right now.',
+        darphane: 'Mint', kent: 'Ancient city', ozetYukleniyor: 'Loading…', bag: 'Open article', kapat: 'Close'
+    } : {
+        harita: 'Darphane haritası', yukleniyor: 'Harita yükleniyor…', hata: 'Harita şu anda yüklenemiyor.',
+        darphane: 'Darphane', kent: 'Antik kent', ozetYukleniyor: 'Yükleniyor…', bag: 'Makaleyi aç', kapat: 'Kapat'
+    };
+    // [EN ad, TR ad, enlem, boylam, bölge sayfası kısa adı (sikke adresindeki)]
+    var BOLGELER = [
+        ['LYDIA', 'LİDYA', 38.6, 28.2, 'lydia-coins'], ['IONIA', 'İYONYA', 37.9, 27.3, 'ionia-coins'],
+        ['CARIA', 'KARYA', 37.5, 28.3, 'caria-coins'], ['LYCIA', 'LİKYA', 36.6, 29.8, 'lycia-coins'],
+        ['PHRYGIA', 'FRİGYA', 38.8, 30.5, 'phrygia-coins'], ['CILICIA', 'KİLİKYA', 37.0, 35.5, 'cilicia-coins'],
+        ['PAMPHYLIA', 'PAMFİLYA', 37.0, 31.0, 'pamphylia-coins'], ['MYSIA', 'MİSYA', 39.9, 27.9, 'mysia-coins'],
+        ['PISIDIA', 'PİSİDYA', 37.7, 30.5, 'pisidia-coins'], ['BITHYNIA', 'BİTİNYA', 40.5, 31.0, 'bithynia-coins'],
+        ['CAPPADOCIA', 'KAPADOKYA', 38.6, 35.5, 'cappadocia-coins'], ['GALATIA', 'GALATYA', 39.9, 32.8, 'galatia-coins'],
+        ['TROAS', 'TROAS', 39.8, 26.5, 'troas-coins'], ['AEOLIS', 'AİOLİS', 39.2, 27.0, 'aeolis-coins'],
+        ['PONTUS', 'PONTUS', 40.8, 37.5, 'pontus-coins'], ['PAPHLAGONIA', 'PAFLAGONYA', 41.5, 34.0, 'paphlagonia-coins'],
+        ['COMMAGENE', 'KOMMAGENE', 37.9, 38.5, ''], ['ISAURIA', 'İSAURYA', 37.1, 32.2, ''],
+        ['LYCAONIA', 'LİKAONYA', 37.5, 33.5, ''], ['SOPHENE', 'SOFENE', 38.7, 39.5, '']
+    ];
+    var DARPHANE_KM = 8;  // uygulamadaki _sameMintKm: darphane kaydı eşleşmesi ve darphaneye çok yakın kentler gizlenir
+    var KENT_KM = 5;      // uygulamadaki _cityMatchKm: kentin yerleşim kaydı
 
- 
-        if (!coordsString || !coordsString.includes(',')) { return; } 
-        const coordsArray = coordsString.split(','); 
-        const lat = parseFloat(coordsArray[0]); 
-        const lng = parseFloat(coordsArray[1]); 
-        if (isNaN(lat) || isNaN(lng)) { return; } 
+    var yer = KAP.querySelector('.nmh-yer');
+    KAP.setAttribute('role', 'region');
+    KAP.setAttribute('aria-label', T.harita);
 
- 
-        // Darphane açıklamaları sözlüğü - Çift Dil Desteği (TR/EN) 
-        const mintDescriptions = { 
-            "Kyzikos": { tr: "Propontis kıyısında önemli bir ticaret merkezi", en: "Important trading center on the Propontis coast" }, 
-            "Pergamon": { tr: "Attalid Krallığı'nın başkenti", en: "Capital of the Attalid Kingdom" }, 
-            "Assos": { tr: "Antik Yunan filozofları için önemli merkez", en: "Important center for ancient Greek philosophers" }, 
-            "Troia": { tr: "Efsanevi Truva Savaşı'nın yeri", en: "Site of the legendary Trojan War" }, 
-            "Lampsakos": { tr: "Hellespontos kıyısında antik şehir", en: "Ancient city on the Hellespont" }, 
-            "Nikaia": { tr: "İznik Konsili'ne ev sahipliği yapmış şehir", en: "City that hosted the Council of Nicaea" }, 
-            "Nikomedia": { tr: "Bitinya Krallığı'nın başkenti", en: "Capital of the Kingdom of Bithynia" }, 
-            "Prusa": { tr: "Olympos Dağı eteğinde kurulmuş şehir", en: "City founded at the foot of Mount Olympus" }, 
-            "Chalkedon": { tr: "Boğaz'ın Asya yakasındaki antik şehir", en: "Ancient city on the Asian side of the Bosphorus" }, 
-            "Herakleia Pontike": { tr: "Karadeniz kıyısında önemli liman", en: "Important port on the Black Sea coast" }, 
-            "Sinope": { tr: "Karadeniz'in en önemli limanı", en: "Most important port of the Black Sea" }, 
-            "Amisos": { tr: "Pontus Krallığı'nın önemli şehri", en: "Important city of the Kingdom of Pontus" }, 
-            "Trapezus": { tr: "İpek Yolu'nun Karadeniz uç noktası", en: "Black Sea endpoint of the Silk Road" }, 
-            "Amasia": { tr: "Pontus krallarının mezar şehri", en: "Burial city of Pontic kings" }, 
-            "Aizanoi": { tr: "En iyi korunmuş Zeus tapınağına sahip şehir", en: "City with the best-preserved Temple of Zeus" }, 
-            "Synnada": { tr: "Mermer ocaklarıyla ünlü Frigya şehri", en: "Phrygian city famous for marble quarries" }, 
-            "Hierapolis": { tr: "Kutsal şehir ve kaplıca merkezi", en: "Sacred city and spa center" }, 
-            "Laodikeia": { tr: "Yedi Kilise'den biri", en: "One of the Seven Churches" }, 
-            "Apameia": { tr: "Frigya'nın önemli ticaret merkezi", en: "Important trading center of Phrygia" }, 
-            "Ankyra": { tr: "Galatya'nın başkenti, günümüz Türkiye'nin başkenti", en: "Capital of Galatia, modern capital of Turkey" }, 
-            "Pessinus": { tr: "Kybele kültünün merkezi", en: "Center of the cult of Cybele" }, 
-            "Kaisareia": { tr: "Erciyes Dağı eteğinde antik şehir", en: "Ancient city at the foot of Mount Erciyes" }, 
-            "Tyana": { tr: "Apollonius'un doğum yeri", en: "Birthplace of Apollonius" }, 
-            "Sardis": { tr: "Lidya Krallığı'nın başkenti, paranın doğum yeri", en: "Capital of Lydia, birthplace of coinage" }, 
-            "Ephesos": { tr: "Artemis Tapınağı'na ev sahipliği yapmış şehir", en: "City that hosted the Temple of Artemis" }, 
-            "Smyrna": { tr: "Ege'nin incisi, önemli liman şehri", en: "Pearl of the Aegean, important port city" }, 
-            "Miletos": { tr: "Felsefe ve bilimin doğum yeri", en: "Birthplace of philosophy and science" }, 
-            "Priene": { tr: "Helenistik şehir planlamasının örneği", en: "Example of Hellenistic urban planning" }, 
-            "Colophon": { tr: "Antik İonya şehri", en: "Ancient Ionian city" }, 
-            "Phocaea": { tr: "Batı Akdeniz kolonilerinin kurucusu", en: "Founder of western Mediterranean colonies" }, 
-            "Teos": { tr: "Dionysos kültünün merkezi", en: "Center of the cult of Dionysus" }, 
-            "Halikarnassos": { tr: "Mausoleum'un yeri, Herodotos'un doğum yeri", en: "Site of the Mausoleum, birthplace of Herodotus" }, 
-            "Knidos": { tr: "Aphrodite heykeliyle ünlü şehir", en: "City famous for its Aphrodite statue" }, 
-            "Aphrodisias": { tr: "Heykeltıraşlık okulu ve Aphrodite tapınağı", en: "Sculpture school and Temple of Aphrodite" }, 
-            "Stratonikeia": { tr: "Helenistik dönem şehri", en: "Hellenistic period city" }, 
-            "Mylasa": { tr: "Karya'nın eski başkenti", en: "Ancient capital of Caria" }, 
-            "Iasos": { tr: "Balıkçılıkla ünlü kıyı şehri", en: "Coastal city famous for fishing" }, 
-            "Xanthos": { tr: "Likya Birliği'nin başkenti", en: "Capital of the Lycian League" }, 
-            "Patara": { tr: "Apollon kehanet merkezi ve önemli liman", en: "Oracle of Apollo and important port" }, 
-            "Myra": { tr: "Aziz Nikolaos'un piskoposluk merkezi", en: "Bishopric of Saint Nicholas" }, 
-            "Phaselis": { tr: "Üç limanlı antik şehir", en: "Ancient city with three harbors" }, 
-            "Telmessos": { tr: "Kaya mezarlarıyla ünlü şehir", en: "City famous for rock tombs" }, 
-            "Tlos": { tr: "Pegasos'un mitolojik evi", en: "Mythological home of Pegasus" }, 
-            "Olympos": { tr: "Yanartaş'a yakın antik şehir", en: "Ancient city near the eternal flames" }, 
-            "Perge": { tr: "Aziz Paulus'un ziyaret ettiği şehir", en: "City visited by Saint Paul" }, 
-            "Side": { tr: "Köle ticaretinin merkezi", en: "Center of the slave trade" }, 
-            "Aspendos": { tr: "En iyi korunmuş Roma tiyatrosu", en: "Best-preserved Roman theater" }, 
-            "Attaleia": { tr: "II. Attalos tarafından kurulan liman şehri", en: "Port city founded by Attalus II" }, 
-            "Sagalassos": { tr: "Dağ yamacında kurulu iyi korunmuş şehir", en: "Well-preserved city on a mountain slope" }, 
-            "Termessos": { tr: "Büyük İskender'in alamadığı şehir", en: "City that Alexander the Great could not conquer" }, 
-            "Selge": { tr: "Toros Dağları'ndaki bağımsız şehir", en: "Independent city in the Taurus Mountains" }, 
-            "Antiocheia Pisidia": { tr: "Roma kolonisi ve Aziz Paulus'un ziyaret ettiği şehir", en: "Roman colony visited by Saint Paul" }, 
-            "Tarsus": { tr: "Aziz Paulus'un doğum yeri", en: "Birthplace of Saint Paul" }, 
-            "Anazarbos": { tr: "Kilikya'nın metropolisi", en: "Metropolis of Cilicia" }, 
-            "Kelenderis": { tr: "Kıbrıs'a en yakın liman", en: "Closest port to Cyprus" }, 
-            "Aigeai": { tr: "İskenderun Körfezi'nde liman şehri", en: "Port city in the Gulf of Iskenderun" }, 
-            "Soli": { tr: "Pompeiopolis olarak da bilinir", en: "Also known as Pompeiopolis" }, 
-            "Korykos": { tr: "Deniz kalesine sahip antik şehir", en: "Ancient city with a sea castle" }, 
-            "Olba": { tr: "Zeus Olbios tapınağına sahip şehir", en: "City with the Temple of Zeus Olbios" }, 
-            "Kyme": { tr: "Aiolis'in en büyük şehri", en: "Largest city of Aeolis" }, 
-            "Myrina": { tr: "Terrakotta figürleriyle ünlü", en: "Famous for terracotta figurines" }, 
-            "Pitane": { tr: "Arkesilaos'un doğum yeri", en: "Birthplace of Arcesilaus" }, 
-            "Elaea": { tr: "Pergamon'un limanı", en: "Harbor of Pergamon" }, 
-            "Abydos": { tr: "Çanakkale Boğazı'nın en dar noktası", en: "Narrowest point of the Dardanelles" }, 
-            "Alexandria Troas": { tr: "Roma döneminin önemli limanı", en: "Important port of the Roman period" }, 
-            "Ilion": { tr: "Antik Truva şehrinin yeri", en: "Site of ancient Troy" }, 
-            "Skepsis": { tr: "Aristoteles'in kütüphanesinin bulunduğu yer", en: "Location of Aristotle's library" }, 
-            "Rhodes": { tr: "Kolossos heykeliyle ünlü ada şehri", en: "Island city famous for the Colossus" }, 
-            "Kos": { tr: "Hipokrat'ın doğum yeri", en: "Birthplace of Hippocrates" }, 
-            "Samos": { tr: "Pisagor'un doğum yeri", en: "Birthplace of Pythagoras" }, 
-            "Chios": { tr: "Homeros'un muhtemel doğum yeri", en: "Possible birthplace of Homer" }, 
-            // Commagene Darphaneleri 
-            "Samosata": { tr: "Commagene Krallığı'nın Fırat kıyısındaki başkenti", en: "Capital of Commagene Kingdom on the Euphrates" }, 
-            "Doliche": { tr: "Jüpiter Dolichenus kültüyle ünlü dini merkez", en: "Religious center famous for Jupiter Dolichenus cult" }, 
-            "Germanicia": { tr: "Kapadokya sınırında önemli Roma kenti", en: "Important Roman city on the Cappadocian border" }, 
-            // Isauria Darphaneleri 
-            "Isaura": { tr: "İsaurya'nın en önemli kalesi ve merkezi", en: "Most important fortress and center of Isauria" }, 
-            "Germanicopolis": { tr: "Isauria'nın güneyindeki önemli kent", en: "Important city in southern Isauria" }, 
-            "Claudiopolis": { tr: "Stratejik geçiş noktasında yer alan kent", en: "City at a strategic crossing point" }, 
-            // Lycaonia Darphaneleri 
-            "Iconium": { tr: "Likaonya'nın en büyük kenti, Roma kolonisi", en: "Largest city of Lycaonia, Roman colony" }, 
-            "Laranda": { tr: "Likaonya'nın güneydeki önemli merkezi", en: "Important center in southern Lycaonia" }, 
-            "Lystra": { tr: "Aziz Pavlus'un ziyaret ettiği Roma kolonisi", en: "Roman colony visited by Saint Paul" }, 
-            "Derbe": { tr: "Aziz Pavlus'un ziyaret ettiği kent", en: "City visited by Saint Paul" }, 
-            // Sophene Darphaneleri 
-            "Arsamosata": { tr: "Sophene Krallığı'nın başkenti", en: "Capital of the Kingdom of Sophene" }, 
-            "Amida": { tr: "Dicle Nehri kıyısında stratejik kale", en: "Strategic fortress on the Tigris River" }, 
-            // Pisidya Ek Darphaneleri 
-            "Kremna": { tr: "Roma kolonisi, Pamfilya sınırında stratejik şehir", en: "Roman colony, strategic city on Pamphylian border" }, 
-            "Antiocheia": { tr: "Pisidia Antiokheia, Aziz Pavlus'un misyonerlik merkezi", en: "Pisidian Antioch, center of Saint Paul missionary journey" }, 
-            // Ionya Ek Darphaneleri 
-            "Kolophon": { tr: "Ion Birliği'nin önemli üyesi, atlı birlikleriyle ünlü", en: "Important member of Ionian League, famous for cavalry" }, 
-            "Klazomenai": { tr: "Ion Birliği üyesi, zeytinyağı ticareti merkezi", en: "Ionian League member, olive oil trade center" }, 
-            "Erythrai": { tr: "Ion Birliği'nin önemli üyelerinden", en: "Important member of Ionian League" }, 
-            "Lebedos": { tr: "Küçük Ion kenti, Dionyssos kültürü merkezi", en: "Small Ionian city, center of Dionysus cult" }, 
-            "Phokaia": { tr: "Denizci kent, Batı Akdeniz'de koloniler kurdu", en: "Seafaring city, established colonies in Western Mediterranean" }, 
-            "Magnesia ad Maeandrum": { tr: "Menderes Magnesiası, Artemis tapınağı ile ünlü", en: "Magnesia on the Maeander, famous for Temple of Artemis" }, 
-            // Karya Ek Darphaneleri 
-            "Kaunos": { tr: "Dalyan kaya mezarları ile ünlü liman kenti", en: "Port city famous for rock-cut tombs at Dalyan" }, 
-            "Keramos": { tr: "Gökova Körfezi'nde antik liman kenti", en: "Ancient port city on Gokova Bay" }, 
-            "Myndos": { tr: "Bodrum yakınında antik liman kenti", en: "Ancient port city near Bodrum" }, 
-            // Likya Ek Darphaneleri 
-            "Limyra": { tr: "Likya'nın en eski ve zengin kentlerinden", en: "One of the oldest and richest Lycian cities" }, 
-            "Arykanda": { tr: "Dağ yamacında beş teraslı antik kent", en: "Ancient city on five terraces on mountain slope" }, 
-            "Pinara": { tr: "Kaya mezarları ve tiyatrosuyla önemli Likya kenti", en: "Important Lycian city with rock tombs and theater" }, 
-            // Frigya Ek Darphaneleri 
-            "Dorylaeum": { tr: "Eskişehir, stratejik Roma yolu kavşağı", en: "Eskisehir, strategic Roman road junction" }, 
-            "Philomelion": { tr: "Roma dönemine ait önemli Frigya kenti", en: "Important Phrygian city of Roman period" }, 
-            "Akmoneia": { tr: "Roma dönemi sikke basan Frigya kenti", en: "Phrygian city minting coins in Roman period" }, 
-            // Misya Ek Darphaneleri 
-            "Parion": { tr: "Çanakkale yakınlarında antik liman kenti", en: "Ancient port city near Canakkale" }, 
-            "Adramytteion": { tr: "Edremit Körfezi'nde önemli liman kenti", en: "Important port city on Gulf of Edremit" }, 
-            "Pitane": { tr: "Çandarlı, antik liman ve ticaret merkezi", en: "Candarli, ancient port and trade center" }, 
-            // Bitinya Ek Darphaneleri 
-            "Prusias ad Hypium": { tr: "Düzce Konuralp, Roma dönemi önemli kenti", en: "Duzce Konuralp, important city of Roman period" }, 
-            "Apameia Myrleia": { tr: "Mudanya yakınlarında antik kent", en: "Ancient city near Mudanya" }, 
-            // Pamfilya Ek Darphaneleri 
-            "Sillyon": { tr: "Akropolis ve stadyumu ile önemli Pamfilya kenti", en: "Important Pamphylian city with acropolis and stadium" }, 
-            // Kilikya Ek Darphaneleri 
-            "Seleukeia": { tr: "Silifke, önemli Helenistik ve Roma kenti", en: "Silifke, important Hellenistic and Roman city" }, 
-            "Soloi": { tr: "Mersin-Viranşehir, liman kenti", en: "Mersin-Viransehir, port city" }, 
-            "Issos": { tr: "Büyük İskender'in zafer kazandığı yer", en: "Site of Alexander the Great victory" }, 
-            "Mallos": { tr: "Ceyhan yakınında antik liman kenti", en: "Ancient port city near Ceyhan" }, 
-            // Kapadokya Ek Darphaneleri 
-            "Komana": { tr: "Ma tanrıçası tapınağı ile ünlü dini merkez", en: "Religious center famous for temple of Ma goddess" }, 
-            // Troas Ek Darphaneleri 
-            "Ilion": { tr: "Truva, İlyada'nın efsanevi kenti", en: "Troy, legendary city of the Iliad" }, 
-            // Pontus Ek Darphaneleri 
-            "Kerasous": { tr: "Giresun, kirazın anavatanı", en: "Giresun, birthplace of cherry" }, 
-            "Pharnakeia": { tr: "Fatsa yakınlarında Pontus liman kenti", en: "Pontus port city near Fatsa" }, 
-            // Paflagonya Ek Darphaneleri 
-            "Pompeiopolis": { tr: "Taşköprü, Roma dönemi önemli kenti", en: "Taskopru, important city of Roman period" }, 
-            "Amastris": { tr: "Paflagonya'nın önemli liman şehri", en: "Important port city of Paphlagonia" }, 
-            "Gangra": { tr: "Galatya'nın kuzey sınırındaki şehir", en: "City on the northern border of Galatia" }, 
-            // Aiolis Ek Darphaneleri 
-            "Temnos": { tr: "Gediz vadisinde Aiol kenti", en: "Aeolian city in Gediz valley" }, 
-            "Aigai": { tr: "Aiol Birliği'nin 12 kentinden biri", en: "One of 12 cities of Aeolian League" }, 
-            "Grynion": { tr: "Apollon tapınağı ile ünlü Aiol kenti", en: "Aeolian city famous for Temple of Apollo" } 
-        }; 
+    function satir(etiketler) {
+        var basliklar = document.querySelectorAll('.el-title');
+        var i, j, t, oge;
+        for (j = 0; j < 2; j++) {           // önce birebir eşleşme, sonra içerme
+            for (i = 0; i < basliklar.length; i++) {
+                t = basliklar[i].textContent.trim();
+                if (etiketler.some(function (e) { return j === 0 ? t === e : t.indexOf(e) !== -1; })) {
+                    oge = basliklar[i].closest('.el-item');
+                    if (oge && oge.querySelector('.el-content')) { return oge.querySelector('.el-content').textContent.trim(); }
+                }
+            }
+        }
+        return '';
+    }
 
- 
-        // Dile göre açıklama seç 
-        function getMintDescription(mintName) { 
-            const mint = mintDescriptions[mintName]; 
-            if (!mint) return ''; 
-            return isEnglish ? mint.en : mint.tr; 
-        } 
+    function km(a1, o1, a2, o2) {
+        var r = Math.PI / 180, dA = (a2 - a1) * r, dO = (o2 - o1) * r;
+        var x = Math.sin(dA / 2) * Math.sin(dA / 2) + Math.cos(a1 * r) * Math.cos(a2 * r) * Math.sin(dO / 2) * Math.sin(dO / 2);
+        return 12742 * Math.asin(Math.sqrt(x));
+    }
 
- 
-        // Darphane için açıklama bul 
-        const mintDesc = getMintDescription(name); 
+    function gecerli(lat, lng) { return lat >= 34 && lat <= 43.5 && lng >= 25 && lng <= 46; }
 
- 
-        const mapStyle = [{"featureType":"all","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"landscape.natural","elementType":"geometry","stylers":[{"color":"#e7c8ae"}]},{"featureType":"landscape.natural.landcover","elementType":"geometry","stylers":[{"color":"#f3e0c5"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#d1ad6f"}]},{"featureType":"road","stylers":[{"visibility":"off"}]},{"featureType":"poi","stylers":[{"visibility":"off"}]},{"featureType":"administrative","stylers":[{"visibility":"off"}]},{"featureType":"transit","stylers":[{"visibility":"off"}]}]; 
+    // "enlem,boylam" beklenir; katalogda ters yazılmış kayıtlar var (ör. 14983: "28.11,39.51").
+    function konum(metin) {
+        var p = (metin || '').split(',');
+        if (p.length < 2) { return null; }
+        var a = parseFloat(p[0]), b = parseFloat(p[1]);
+        if (isNaN(a) || isNaN(b)) { return null; }
+        var duz = gecerli(a, b), ters = gecerli(b, a);
+        if (duz && ters) {
+            var yol = location.pathname.toLowerCase();
+            var bolge = BOLGELER.filter(function (g) { return g[4] && yol.indexOf('/' + g[4] + '/') !== -1; })[0];
+            if (bolge && km(b, a, bolge[2], bolge[3]) < km(a, b, bolge[2], bolge[3])) { return { lat: b, lng: a }; }
+            return { lat: a, lng: b };
+        }
+        if (duz) { return { lat: a, lng: b }; }
+        if (ters) { return { lat: b, lng: a }; }
+        return null;
+    }
 
- 
-        const mapOptions = { 
-            center: { lat: lat, lng: lng }, 
-            zoom: 8, // Bölge isimlerinin de görünmesi için zoom'u biraz uzaklaştırdık 
-            styles: mapStyle, 
-            mapTypeId: 'terrain', 
-            disableDefaultUI: true, 
-            zoomControl: true, 
-            scrollwheel: false 
-        }; 
+    // Katalog alanı çoğu sayfada anahtar ("attaea", "prusa_ad_olympum"): arama modülündeki mintLabel kuralıyla
+    // okunur ada çevrilir. Ad zaten büyük harfle yazılmışsa ("Sardes (Sardis)") olduğu gibi kalır.
+    var KUCUK = { ad: 1, de: 1, et: 1, sub: 1, 'in': 1 };
+    function ad(s) {
+        s = String(s || '').trim();
+        if (/[A-ZÇĞİÖŞÜ]/.test(s) && s.indexOf('_') === -1) { return s; }
+        return s.replace(/[_-]+/g, ' ').split(/\s+/).filter(Boolean).map(function (w, i) {
+            var k = w.toLowerCase();
+            return (i > 0 && KUCUK[k]) ? k : k.charAt(0).toUpperCase() + k.slice(1);
+        }).join(' ');
+    }
 
- 
-        const map = new google.maps.Map(document.getElementById("single-mint-map"), mapOptions); 
-        const customInfoWindow = new CustomInfoWindow(); 
-        // Sikkenin darphanesi için standart işaretçiyi oluştur 
-        const marker = new google.maps.Marker({ 
-            position: { lat: lat, lng: lng }, 
-            map: map, 
-            title: name 
-        }); 
-        marker.addListener('click', () => { 
-            customInfoWindow.setContent(name, mintDesc); 
-            customInfoWindow.open(map, marker); 
-        }); 
-        // --- 17 ANTİK BÖLGE - Çift Dil Desteği (TR/EN) --- 
-        const ancientRegions = [ 
-            { name: 'LYDIA', lat: 38.6, lng: 28.2, desc: "Paranın icat edildiği bölge", descEn: "Birthplace of coinage" }, 
-            { name: 'IONIA', lat: 37.9, lng: 27.3, desc: "Antik felsefe ve bilimin beşiği", descEn: "Cradle of ancient philosophy and science" }, 
-            { name: 'CARIA', lat: 37.5, lng: 28.3, desc: "Mausoleum'un bölgesi", descEn: "Region of the Mausoleum" }, 
-            { name: 'LYCIA', lat: 36.6, lng: 29.8, desc: "İlk demokratik federasyon", descEn: "First democratic federation" }, 
-            { name: 'PHRYGIA', lat: 38.8, lng: 30.5, desc: "Kral Midas'ın toprakları", descEn: "Lands of King Midas" }, 
-            { name: 'CILICIA', lat: 37.0, lng: 35.5, desc: "Aziz Paulus'un memleketi", descEn: "Homeland of Saint Paul" }, 
-            { name: 'PAMPHYLIA', lat: 37.0, lng: 31.0, desc: "Aspendos ve Side", descEn: "Aspendos and Side" }, 
-            { name: 'MYSIA', lat: 39.9, lng: 27.9, desc: "Pergamon'un bölgesi", descEn: "Region of Pergamon" }, 
-            { name: 'PISIDIA', lat: 37.7, lng: 30.5, desc: "Dağlık bölge", descEn: "Mountainous region" }, 
-            { name: 'BITHYNIA', lat: 40.5, lng: 31.0, desc: "İznik Konsili'nin bölgesi", descEn: "Region of the Nicaean Council" }, 
-            { name: 'CAPPADOCIA', lat: 38.6, lng: 35.5, desc: "Peri bacaları bölgesi", descEn: "Fairy chimneys region" }, 
-            { name: 'GALATIA', lat: 39.9, lng: 32.8, desc: "Kelt yurdu, Ankara", descEn: "Celtic homeland, Ankara" }, 
-            { name: 'TROAS', lat: 39.8, lng: 26.5, desc: "Truva Savaşı'nın yeri", descEn: "Site of the Trojan War" }, 
-            { name: 'AEOLIS', lat: 39.2, lng: 27.0, desc: "Aiol kolonileri", descEn: "Aeolian colonies" }, 
-            { name: 'PONTUS', lat: 40.8, lng: 37.5, desc: "Mithridates'in krallığı", descEn: "Kingdom of Mithridates" }, 
-            { name: 'PAPHLAGONIA', lat: 41.5, lng: 34.0, desc: "Karadeniz limanları", descEn: "Black Sea ports" }, 
-            { name: 'COMMAGENE', lat: 37.9, lng: 38.5, desc: "Nemrut Dağı ve Grek-Pers senkretik kültürü", descEn: "Mount Nemrut and Greco-Persian syncretic culture" }, 
-            { name: 'ISAURIA', lat: 37.1, lng: 32.2, desc: "Toros Dağları'nın savaşçı dağlı kabileleri", descEn: "Warrior mountain tribes of the Taurus Mountains" }, 
-            { name: 'LYCAONIA', lat: 37.5, lng: 33.5, desc: "Aziz Pavlus'un misyonerlik yolculukları bölgesi", descEn: "Region of Saint Paul's missionary journeys" }, 
-            { name: 'SOPHENE', lat: 38.7, lng: 39.5, desc: "Fırat'ın yukarı havzasında Armeno-İrani krallık", descEn: "Armeno-Iranian kingdom in the upper Euphrates basin" } 
-        ]; 
-        ancientRegions.forEach(region => { 
-            new google.maps.Marker({ 
-                position: { lat: region.lat, lng: region.lng }, 
-                map: map, 
-                // İşaretçiyi görünmez yapıp sadece metin etiketini gösteriyoruz 
-                icon: { 
-                    url: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", // 1x1 şeffaf piksel 
-                    anchor: new google.maps.Point(0, 0) 
-                }, 
-                label: { 
-                    text: region.name, 
-                    color: '#8D6E63', // Daha koyu, okunaklı bir kahverengi 
-                    fontSize: '14px', 
-                    fontWeight: 'bold', 
-                    className: 'map-region-label' // Gerekirse ek stil için 
-                } 
-            }); 
-        }); 
-        // --- YENİ BÖLÜM SONU --- 
-        map.addListener('click', function() { 
-            customInfoWindow.close(); 
-        }); 
-    }, 500); 
-} 
-</script> 
-<!-- 4. Google Maps API'yi Yükleyen Kod --> 
-<script async src="https://maps.googleapis.com/maps/api/js?key=<?php echo $h($anahtar); ?>&callback=initSingleLocationMap"></script> 
-</p></div>
+    var darphaneAdi = ad(satir(['Darphane', 'Mint']));
+    var nokta = konum(satir(['Darphane Koordinatları', 'Mint Coordinates']));
+
+    if (!darphaneAdi || !nokta) {
+        KAP.style.display = 'none';      // koordinat yoksa boş 400 px kutu bırakma
+        return;
+    }
+    yer.textContent = T.yukleniyor;
+
+    function hata() { yer.textContent = T.hata; yer.style.display = ''; }
+    window.gm_authFailure = window.gm_authFailure || hata;
+
+    // ---- Yerleşim kaydı: Antik Harita ile aynı uç (/v1/locations); yalnız tıklanınca istenir
+    var ozetler = {};
+    // Ad karşılaştırması için sadeleştirme: Thyatira ~ Thyateira, Kyzikos ~ Cyzicus, Ephesos ~ Ephesus
+    function sade(s) {
+        return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ı/g, 'i')
+            .replace(/ph/g, 'f').replace(/c/g, 'k').replace(/y/g, 'i').replace(/ou/g, 'u').replace(/ei/g, 'i')
+            .replace(/ae|ai/g, 'e').replace(/[^a-z]/g, '');
+    }
+    function benzer(a, b) {
+        a = sade(a); b = sade(b);
+        var n = Math.min(4, a.length, b.length);
+        return n >= 3 && a.slice(0, n) === b.slice(0, n);
+    }
+    // Aynı noktada birden çok kayıt olabilir (ör. Thyatira'da "Thyateira" ile yeri belirsiz "Mernouphyta", ikisi 0,5 km):
+    // önce adı benzeyen, sonra sikke basmış, en son en yakın kayıt seçilir.
+    function yakinKayit(lat, lng, enCok, yalnizDarphane, adi) {
+        var dA = enCok / 111, dO = dA / Math.cos(lat * Math.PI / 180);
+        var url = '/api/index.php/v1/locations?ne_lat=' + (lat + dA).toFixed(4) + '&ne_lng=' + (lng + dO).toFixed(4)
+            + '&sw_lat=' + (lat - dA).toFixed(4) + '&sw_lng=' + (lng - dO).toFixed(4) + '&lang=' + DIL + '&limit=200';
+        return fetch(url, { headers: { Accept: 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (j) {
+                var en = null, enPuan = -1, enKm = Infinity;
+                ((j && j.data) || []).forEach(function (l) {
+                    if (yalnizDarphane && !l.has_coins) { return; }
+                    var d = km(lat, lng, l.lat, l.lng);
+                    if (d > enCok) { return; }
+                    var p = (benzer(adi, l.name) ? 4 : 0) + (l.has_coins ? 2 : 0);
+                    if (p > enPuan || (p === enPuan && d < enKm)) { en = l; enPuan = p; enKm = d; }
+                });
+                return en;
+            });
+    }
+    function ozet(id) {
+        if (ozetler[id] !== undefined) { return Promise.resolve(ozetler[id]); }
+        return fetch('/api/index.php/v1/locations/' + encodeURIComponent(id) + '?lang=' + DIL, { headers: { Accept: 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (d) { ozetler[id] = (d && d.data && d.data.summary) ? String(d.data.summary) : ''; return ozetler[id]; });
+    }
+
+    function ciz() {
+        var g = google.maps;
+        yer.style.display = 'none';
+
+        var harita = new g.Map(KAP, {
+            // dar ekranda (telefon) bir kademe uzaktan: bölgenin önemli kentleri sığsın
+            center: nokta, zoom: KAP.offsetWidth < 600 ? 7 : 8, mapTypeId: 'terrain', disableDefaultUI: true, zoomControl: true,
+            gestureHandling: 'cooperative', clickableIcons: false,
+            styles: [{"featureType":"all","elementType":"labels","stylers":[{"visibility":"off"}]},{"featureType":"landscape.natural","elementType":"geometry","stylers":[{"color":"#e7c8ae"}]},{"featureType":"landscape.natural.landcover","elementType":"geometry","stylers":[{"color":"#f3e0c5"}]},{"featureType":"water","elementType":"geometry","stylers":[{"color":"#d1ad6f"}]},{"featureType":"road","stylers":[{"visibility":"off"}]},{"featureType":"poi","stylers":[{"visibility":"off"}]},{"featureType":"administrative","stylers":[{"visibility":"off"}]},{"featureType":"transit","stylers":[{"visibility":"off"}]}]
+        });
+
+        function Isaret(konumu, el, katman) {
+            this.konumu = new g.LatLng(konumu.lat, konumu.lng);
+            this.el = el;
+            this.katman = katman;
+            if (katman !== 'overlayLayer') { g.OverlayView.preventMapHitsAndGesturesFrom(el); }
+            this.setMap(harita);
+        }
+        Isaret.prototype = new g.OverlayView();
+        Isaret.prototype.onAdd = function () { this.getPanes()[this.katman].appendChild(this.el); };
+        Isaret.prototype.onRemove = function () { if (this.el.parentNode) { this.el.parentNode.removeChild(this.el); } };
+        Isaret.prototype.draw = function () {
+            var p = this.getProjection().fromLatLngToDivPixel(this.konumu);
+            if (p) { this.el.style.left = p.x + 'px'; this.el.style.top = p.y + 'px'; }
+        };
+
+        function dugme(sinif, metin) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = sinif;
+            b.innerHTML = '<span class="nmh-nokta" aria-hidden="true"></span><span class="nmh-ad"></span>';
+            b.querySelector('.nmh-ad').textContent = metin;
+            return b;
+        }
+
+        // ---- Bilgi kartı
+        var kartEl = document.createElement('div');
+        kartEl.className = 'nmh-kart';
+        kartEl.setAttribute('role', 'dialog');
+        kartEl.innerHTML = '<button type="button" class="nmh-kapat">&times;</button><span class="nmh-tur"></span><h3></h3>'
+            + '<p class="nmh-ozet" aria-live="polite"></p><a class="nmh-bag"></a>';
+        kartEl.querySelector('.nmh-kapat').setAttribute('aria-label', T.kapat);
+        var kart = null, kartSira = 0;
+
+        function kartAcik() { return !!(kart && kart.getMap()); }
+        function kartKapat() { kartSira++; if (kartAcik()) { kart.setMap(null); } }
+        function sonra(f) { requestAnimationFrame(function () { requestAnimationFrame(f); }); }
+        function kartYaz(tur, baslik, metin, url) {
+            kartEl.querySelector('.nmh-tur').textContent = tur;
+            kartEl.querySelector('h3').textContent = baslik;
+            kartEl.setAttribute('aria-label', baslik);
+            var o = kartEl.querySelector('.nmh-ozet');
+            o.textContent = metin || '';
+            o.style.display = metin ? '' : 'none';
+            var a = kartEl.querySelector('.nmh-bag');
+            if (url) { a.href = url; a.textContent = T.bag; a.style.display = ''; } else { a.removeAttribute('href'); a.style.display = 'none'; }
+        }
+        // Kart harita kabından taşıyorsa haritayı BİR KEZ kaydır (içerik son hâlini alınca). Taşma ekrandan değil
+        // haritanın koordinat dönüşümünden hesaplanır: panBy animasyonu sürerken ölçüp kaymaları biriktirmesin.
+        var sigdirildi = false;
+        function kartSigdir() {
+            if (!kartAcik() || sigdirildi) { return; }
+            var pr = kart.getProjection(), a = pr && pr.fromLatLngToContainerPixel(kart.konumu);
+            var w = kartEl.offsetWidth, h = kartEl.offsetHeight;
+            if (!a || !w || !h) { return; }
+            var m = 10, ust = a.y - h - 18, sol = a.x - w / 2, sag = sol + w, dx = 0, dy = 0;
+            if (ust < m) { dy = ust - m; }
+            if (sol < m) { dx = sol - m; } else if (sag > KAP.offsetWidth - m) { dx = sag - (KAP.offsetWidth - m); }
+            sigdirildi = true;
+            if (dx || dy) { harita.panBy(Math.round(dx), Math.round(dy)); }
+        }
+        function kartAc(tur, baslik, konumu, enCok, yalnizDarphane) {
+            kartKapat();
+            var sira = kartSira;
+            kartYaz(tur, baslik, T.ozetYukleniyor, '');
+            sigdirildi = false;
+            if (!kart) {
+                kart = new Isaret(konumu, kartEl, 'floatPane');
+            } else {
+                kart.konumu = new g.LatLng(konumu.lat, konumu.lng);
+                kart.setMap(harita);
+            }
+            yakinKayit(konumu.lat, konumu.lng, enCok, yalnizDarphane, baslik).then(function (l) {
+                if (sira !== kartSira) { return; }
+                if (!l) { kartYaz(tur, baslik, '', ''); sonra(kartSigdir); return; }
+                kartYaz(tur, baslik, T.ozetYukleniyor, l.url || '');
+                return ozet(l.id).then(function (s) {
+                    if (sira === kartSira) { kartYaz(tur, baslik, s, l.url || ''); sonra(kartSigdir); }
+                });
+            }).catch(function () { if (sira === kartSira) { kartYaz(tur, baslik, '', ''); sonra(kartSigdir); } });
+        }
+        kartEl.querySelector('.nmh-kapat').addEventListener('click', kartKapat);
+        harita.addListener('click', kartKapat);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && kartAcik()) { kartKapat(); } });
+
+        // ---- Bölge adları (tıklanmaz)
+        var bolgeler = BOLGELER.map(function (b) {
+            var el = document.createElement('div');
+            el.className = 'nmh-bolge';
+            el.textContent = EN ? b[0] : b[1];
+            el.setAttribute('aria-hidden', 'true');
+            return { el: el, o: new Isaret({ lat: b[2], lng: b[3] }, el, 'overlayLayer') };
+        });
+
+        // ---- Önemli antik kentler: darphaneye en yakından uzağa; darphaneyle aynı yerdekiler (8 km) gösterilmez
+        var kentler = (VERI.cities || []).map(function (c) {
+            return { ad: c[0], lat: c[1], lng: c[2], d: km(nokta.lat, nokta.lng, c[1], c[2]) };
+        }).filter(function (c) { return c.d > DARPHANE_KM; }).sort(function (a, b) { return a.d - b.d; }).map(function (c) {
+            var el = dugme('nmh-kent nmh-gizli', c.ad);
+            el.addEventListener('click', function () { kartAc(T.kent, c.ad, { lat: c.lat, lng: c.lng }, KENT_KM, false); });
+            c.el = el;
+            c.o = new Isaret({ lat: c.lat, lng: c.lng }, el, 'overlayMouseTarget');
+            return c;
+        });
+
+        // ---- Sikkenin darphanesi
+        var darphaneEl = dugme('nmh-darphane', darphaneAdi);
+        darphaneEl.addEventListener('click', function () { kartAc(T.darphane, darphaneAdi, nokta, DARPHANE_KM, true); });
+        new Isaret(nokta, darphaneEl, 'overlayMouseTarget');
+
+        // ---- Adlar üst üste binmesin: darphane > bölge adları > kentler (yakından uzağa)
+        function kesisir(a, b) { return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom; }
+        function pay(r, d) { return { left: r.left - d, top: r.top - d, right: r.right + d, bottom: r.bottom + d }; }
+        var bekleyen = false, deneme = 0;
+        function planla() {
+            if (bekleyen) { return; }
+            bekleyen = true;
+            sonra(function () { bekleyen = false; yerlestir(); });
+        }
+        function yerlestir() {
+            var c = KAP.getBoundingClientRect();
+            var m = darphaneEl.getBoundingClientRect();
+            // İlk idle, işaretler sayfaya çizilmeden gelebilir (boyutlar 0): çizilene dek sonraki kareye ertele
+            if (!m.width || !c.width) { if (++deneme < 120) { planla(); } return; }
+            deneme = 0;
+            // Dolu sayılan alanlar: darphane, alttaki Google yazısı şeridi, sağ alttaki yakınlaştırma düğmeleri
+            var dolu = [pay(m, 4),
+                { left: c.left, top: c.bottom - 26, right: c.right, bottom: c.bottom },
+                { left: c.right - 60, top: c.bottom - 130, right: c.right, bottom: c.bottom }];
+            var ic = { left: c.left + 4, top: c.top + 4, right: c.right - 4, bottom: c.bottom - 4 };
+            var sabit = dolu.slice();
+            bolgeler.forEach(function (b) {
+                var r = b.el.getBoundingClientRect();
+                var gizle = r.left < ic.left || r.right > ic.right || r.top < ic.top || r.bottom > ic.bottom
+                    || sabit.some(function (d) { return kesisir(r, d); });
+                b.el.classList.toggle('nmh-gizli', gizle);
+                if (!gizle) { dolu.push(r); }
+            });
+            kentler.forEach(function (k) {
+                var g0 = k.el.getBoundingClientRect(), r = pay(g0, 3);
+                // adı tamamen haritanın içinde olmayan kent gösterilmez (kenarda yarım ad kalmasın)
+                var goster = g0.width > 0 && g0.left >= ic.left && g0.right <= ic.right && g0.top >= ic.top && g0.bottom <= ic.bottom
+                    && !dolu.some(function (d) { return kesisir(r, d); });
+                k.el.classList.toggle('nmh-gizli', !goster);
+                if (goster) { dolu.push(r); }
+            });
+        }
+        harita.addListener('idle', planla);
+    }
+
+    function baslat() {
+        var g = window.google && window.google.maps;
+        if (!g) { hata(); return; }
+        var hazir = g.importLibrary ? Promise.all([g.importLibrary('core'), g.importLibrary('maps')]) : Promise.resolve();
+        hazir.then(ciz).catch(hata);
+    }
+
+    function yukle() {
+        if (window.google && window.google.maps && window.google.maps.Map) { baslat(); return; }
+        window.__nmhSikkeHarita = baslat;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(KAP.getAttribute('data-key') || '')
+            + '&loading=async&language=' + DIL + '&callback=__nmhSikkeHarita';
+        s.onerror = hata;
+        document.head.appendChild(s);
+    }
+
+    // Harita görünür alana yaklaşınca yüklenir: sayfa açılışında Google Maps isteği yok
+    if ('IntersectionObserver' in window) {
+        var gozcu = new IntersectionObserver(function (girdiler) {
+            if (girdiler.some(function (e) { return e.isIntersecting; })) { gozcu.disconnect(); yukle(); }
+        }, { rootMargin: '300px 0px' });
+        gozcu.observe(KAP);
+    } else {
+        yukle();
+    }
+})();
+</script>
+</div>

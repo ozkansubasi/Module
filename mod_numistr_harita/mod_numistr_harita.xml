@@ -2,17 +2,18 @@
 <extension type="module" client="site" method="upgrade">
     <name>MOD_NUMISTR_HARITA</name>
     <author>NumisTR</author>
-    <creationDate>2026-10-25</creationDate>
+    <creationDate>2026-11-16</creationDate>
     <copyright>Copyright (C) 2026 NumisTR. All rights reserved.</copyright>
     <license>GNU General Public License version 2 or later</license>
     <authorEmail>info@numistr.org</authorEmail>
     <authorUrl>https://www.numistr.org</authorUrl>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <description>MOD_NUMISTR_HARITA_XML_DESCRIPTION</description>
 
     <files>
         <filename module="mod_numistr_harita">mod_numistr_harita.php</filename>
         <folder>tmpl</folder>
+        <folder>data</folder>
         <folder>language</folder>
     </files>
 
