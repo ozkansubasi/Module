@@ -48,6 +48,12 @@ check('joinDesc: nokta eklenir', L.joinDesc('Ön yüz: Kanatlı at', 'Arka yüz:
 check('joinDesc: zaten noktalı', L.joinDesc('Ön yüz: At.', 'Arka yüz: Kare') === 'Ön yüz: At. Arka yüz: Kare');
 check('joinDesc: tek taraf', L.joinDesc('', 'Arka yüz: Kare') === 'Arka yüz: Kare' && L.joinDesc('Ön yüz: At', '') === 'Ön yüz: At');
 
+// sorgu temizliği (önbellekli sayfada adresten okunur)
+check('cleanQuery: kırpma + boşluk', L.cleanQuery('  kanatlı \t at ') === 'kanatlı at');
+check('cleanQuery: kontrol karakteri', L.cleanQuery('efes\u0000\u001f') === 'efes');
+check('cleanQuery: 60 karakter (Türkçe)', Array.from(L.cleanQuery('ş'.repeat(80))).length === 60);
+check('cleanQuery: null', L.cleanQuery(null) === '');
+
 // adres
 check('buildUrl', L.buildUrl('/api/index.php/v1/search', 'kanatlı at', 'tr', 'coins', 12)
   === '/api/index.php/v1/search?q=kanatl%C4%B1%20at&lang=tr&type=coins&offset=12');

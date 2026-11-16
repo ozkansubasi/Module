@@ -1,4 +1,4 @@
-/* NumisTR site araması — mod_numistr_arama 1.0.1 (16 Kas 2026). Renkler sitenin paletinden; metin kontrastı ≥ 4.5:1. */
+/* NumisTR site araması — mod_numistr_arama 1.0.2 (16 Kas 2026). Renkler sitenin paletinden; metin kontrastı ≥ 4.5:1. */
 .nma { --nma-mor: #3d1a4a; --nma-mor-2: #5c2c6e; --nma-metin: #5f5e5e; --nma-soluk: #767676; --nma-cizgi: #eee8f0; --nma-zemin: #f5f2f6; --nma-krem: #f7f4ef; --nma-vurgu: #f3e7c9; --nma-altin: #8a5f1a; font-family: inherit; color: var(--nma-metin); }
 .nma *, .nma *::before, .nma *::after { box-sizing: border-box; }
 .nma-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

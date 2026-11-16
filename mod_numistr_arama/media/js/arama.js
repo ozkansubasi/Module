@@ -1,5 +1,5 @@
 /*!
- * NumisTR site araması — sonuç sayfası (mod_numistr_arama 1.0.1, 16 Kas 2026)
+ * NumisTR site araması — sonuç sayfası (mod_numistr_arama 1.0.2, 16 Kas 2026)
  * Veri: GET /api/index.php/v1/search (plg_webservices_numistr 1.26.0). Toplam sonuç sayısı gösterilmez.
  * DOM yalnız textContent ile kurulur (API verisi HTML olarak basılmaz).
  * Saf işlevler Node ile test edilir: node Module/tests/arama_js_test.js
@@ -127,6 +127,12 @@
     return (/[.!?…;:]$/.test(a) ? a : a + '.') + ' ' + b;
   }
 
+  /** Sorgu temizliği (sunucudaki cleanQuery ile aynı): kontrol karakteri yok, boşluklar tek, en çok 60 karakter. */
+  function cleanQuery(q) {
+    var t = String(q === null || q === undefined ? '' : q).replace(/[\u0000-\u001F\u007F]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return Array.from(t).slice(0, 60).join('').trim();
+  }
+
   /** Yalnız http(s) adresleri bağlantı/görsel olur. */
   function safeUrl(u) {
     u = String(u || '');
@@ -250,7 +256,13 @@
     var params = new win.URLSearchParams(win.location.search);
     var state = { type: ({ coins: 1, settlements: 1, articles: 1 })[params.get('tur')] ? params.get('tur') : 'all', data: null, busy: false };
 
-    if (!cfg.q || cfg.q.length < 2) { return; }
+    // Sorgu ADRESTEN okunur: Joomla makale önbelleği sayfayı ilk sorguyla saklayabiliyor (16 Kas canlı bulgu),
+    // sunucunun bastığı cfg.q ve kutu değeri başka bir aramaya ait olabilir.
+    cfg.q = cleanQuery(params.get('q') !== null ? params.get('q') : cfg.q);
+    var input = rootEl.querySelector('.nma-input');
+    if (input) { input.value = cfg.q; }
+
+    if (cfg.q.length < 2) { message(s.short); return; }
 
     function setTab(type) {
       state.type = type;
@@ -360,6 +372,6 @@
 
   return {
     regionLabel: regionLabel, mintLabel: mintLabel, materialLabel: materialLabel, dateLabel: dateLabel,
-    highlightParts: highlightParts, joinDesc: joinDesc, buildUrl: buildUrl, safeUrl: safeUrl, trLower: trLower, boot: boot
+    highlightParts: highlightParts, joinDesc: joinDesc, cleanQuery: cleanQuery, buildUrl: buildUrl, safeUrl: safeUrl, trLower: trLower, boot: boot
   };
 });

@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Search Module
  * @subpackage  mod_numistr_arama
- * @version     1.0.1
+ * @version     1.0.2
  * @license     GNU General Public License version 2 or later
  *
  * Düzen "sonuc": sonuç sayfası. Form sunucuda basılır; sonuçları media/mod_numistr_arama/js/arama.js çizer.

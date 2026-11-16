@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Search Module
  * @subpackage  mod_numistr_arama
- * @version     1.0.1
+ * @version     1.0.2
  * @copyright   Copyright (C) 2026 NumisTR. All rights reserved.
  * @license     GNU General Public License version 2 or later
  *
