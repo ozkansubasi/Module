@@ -1,0 +1,62 @@
+/* NumisTR site araması — mod_numistr_arama 1.0.0 (16 Kas 2026). Renkler sitenin paletinden; metin kontrastı ≥ 4.5:1. */
+.nma { --nma-mor: #3d1a4a; --nma-mor-2: #5c2c6e; --nma-metin: #5f5e5e; --nma-soluk: #767676; --nma-cizgi: #eee8f0; --nma-zemin: #f5f2f6; --nma-krem: #f7f4ef; --nma-vurgu: #f3e7c9; --nma-altin: #8a5f1a; font-family: inherit; color: var(--nma-metin); }
+.nma *, .nma *::before, .nma *::after { box-sizing: border-box; }
+.nma-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- form */
+.nma-form { display: flex; align-items: stretch; width: 100%; max-width: 720px; background: #fff; border-radius: 12px; padding: 5px; }
+.nma--dark .nma-form { box-shadow: 0 8px 28px rgba(0, 0, 0, .28); }
+.nma--light .nma-form { border: 2px solid var(--nma-mor); padding: 3px; }
+.nma-input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font: inherit; font-size: 17px; padding: 12px 14px; color: #2a1a30; }
+.nma-input::placeholder { color: var(--nma-soluk); opacity: 1; }
+.nma-input::-webkit-search-cancel-button { cursor: pointer; }
+.nma-form:focus-within { outline: 3px solid rgba(243, 231, 201, .9); outline-offset: 2px; }
+.nma-btn { flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-width: 48px; min-height: 48px; padding: 0 20px; border: 0; border-radius: 9px; background: var(--nma-mor); color: #fff; font: inherit; font-size: 16px; font-weight: 700; cursor: pointer; }
+.nma-btn:hover, .nma-btn:focus-visible { background: var(--nma-mor-2); }
+@media (max-width: 559px) { .nma-btn { padding: 0; width: 48px; } .nma-btn-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .nma-input { font-size: 16px; } }
+
+/* ---- örnek aramalar */
+.nma-ornek { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; }
+.nma-ornek-etiket { font-size: 14px; }
+.nma-chip { display: inline-flex; align-items: center; min-height: 34px; padding: 5px 14px; border-radius: 999px; font-size: 14px; text-decoration: none; }
+.nma--dark .nma-ornek-etiket { color: #e9e0ec; }
+.nma--dark .nma-chip { color: #fff; border: 1px solid rgba(255, 255, 255, .6); }
+.nma--dark .nma-chip:hover { background: rgba(255, 255, 255, .14); color: #fff; }
+.nma--light .nma-chip { color: var(--nma-mor); border: 1px solid #d9cfdd; }
+
+/* ---- sonuç sayfası */
+.nma-sonuc { max-width: 860px; margin: 0 auto; }
+.nma-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px; }
+.nma-tab { min-height: 40px; padding: 8px 16px; border-radius: 999px; border: 1px solid #d9cfdd; background: #fff; color: var(--nma-mor); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.nma-tab--etkin { background: var(--nma-mor); border-color: var(--nma-mor); color: #fff; }
+.nma-not { margin: 20px 0; font-size: 15px; }
+.nma-hata { color: #8a1c1c; }
+.nma-bos { margin: 24px 0 8px; font-size: 18px; font-weight: 700; color: var(--nma-mor); }
+.nma-bolum { margin-top: 26px; }
+.nma-h { margin: 0 0 10px; font-size: 22px; line-height: 1.25; font-weight: 800; color: var(--nma-mor); }
+.nma-hit { background: var(--nma-vurgu); color: inherit; padding: 0 2px; border-radius: 2px; }
+
+.nma-liste { display: flex; flex-direction: column; }
+.nma-coin { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f0ebf1; text-decoration: none; color: inherit; }
+.nma-coin:hover .nma-coin-ad { text-decoration: underline; }
+.nma-thumb { flex: none; width: 88px; height: 88px; border-radius: 8px; background: var(--nma-zemin); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.nma-thumb img { width: 84px; height: 84px; object-fit: contain; }
+.nma-thumb--bos::after { content: ""; width: 40px; height: 40px; border-radius: 50%; border: 2px solid #d9cfdd; }
+.nma-coin-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.nma-coin-ad { font-size: 17px; font-weight: 800; color: var(--nma-mor); }
+.nma-coin-meta { font-size: 14px; }
+.nma-coin-desc { font-size: 14px; line-height: 1.45; }
+.nma-coin-ref { font-size: 12px; color: var(--nma-soluk); }
+
+.nma-kartlar { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.nma-kart { display: flex; gap: 14px; align-items: center; border: 1px solid var(--nma-cizgi); border-radius: 10px; padding: 12px; background: #fff; text-decoration: none; color: inherit; }
+.nma-kart:hover .nma-kart-baslik { text-decoration: underline; }
+.nma-kart-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.nma-kart-baslik { font-size: 17px; line-height: 1.3; font-weight: 700; color: var(--nma-mor); }
+.nma-kart-meta, .nma-kart-ozet { font-size: 14px; line-height: 1.45; }
+.nma-kart-tarih { font-size: 13px; color: var(--nma-soluk); }
+
+.nma-daha { margin-top: 14px; width: 100%; min-height: 48px; border: 1px solid var(--nma-mor); border-radius: 10px; background: #fff; color: var(--nma-mor); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.nma-daha:hover { background: var(--nma-zemin); }
+.nma-ipucu { margin-top: 28px; padding: 16px; background: var(--nma-krem); border-radius: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.5; }
+.nma-ipucu strong { font-size: 16px; color: var(--nma-mor); }

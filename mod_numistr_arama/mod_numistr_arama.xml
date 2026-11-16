@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension type="module" client="site" method="upgrade">
+    <name>MOD_NUMISTR_ARAMA</name>
+    <author>NumisTR</author>
+    <creationDate>November 2026</creationDate>
+    <copyright>Copyright (C) 2026 NumisTR. All rights reserved.</copyright>
+    <license>GNU General Public License version 2 or later</license>
+    <authorEmail>info@numistr.org</authorEmail>
+    <authorUrl>https://www.numistr.org</authorUrl>
+    <version>1.0.0</version>
+    <description>MOD_NUMISTR_ARAMA_XML_DESCRIPTION</description>
+
+    <files>
+        <filename module="mod_numistr_arama">mod_numistr_arama.php</filename>
+        <filename>helper.php</filename>
+        <filename>index.html</filename>
+        <folder>tmpl</folder>
+        <folder>language</folder>
+    </files>
+
+    <media destination="mod_numistr_arama" folder="media">
+        <folder>js</folder>
+        <folder>css</folder>
+        <filename>index.html</filename>
+    </media>
+
+    <languages>
+        <language tag="en-GB">language/en-GB/mod_numistr_arama.ini</language>
+        <language tag="en-GB">language/en-GB/mod_numistr_arama.sys.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_arama.ini</language>
+        <language tag="tr-TR">language/tr-TR/mod_numistr_arama.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field name="surface" type="list" default="dark" label="MOD_NUMISTR_ARAMA_SURFACE_LABEL" description="MOD_NUMISTR_ARAMA_SURFACE_DESC">
+                    <option value="dark">MOD_NUMISTR_ARAMA_SURFACE_DARK</option>
+                    <option value="light">MOD_NUMISTR_ARAMA_SURFACE_LIGHT</option>
+                </field>
+                <field name="results_path_tr" type="text" default="/tr/arama" label="MOD_NUMISTR_ARAMA_PATH_TR_LABEL" description="MOD_NUMISTR_ARAMA_PATH_DESC" filter="string"/>
+                <field name="results_path_en" type="text" default="/en/search" label="MOD_NUMISTR_ARAMA_PATH_EN_LABEL" description="MOD_NUMISTR_ARAMA_PATH_DESC" filter="string"/>
+                <field name="examples_tr" type="text" default="Lampsakos, kanatlı at, Efes" label="MOD_NUMISTR_ARAMA_EXAMPLES_TR_LABEL" description="MOD_NUMISTR_ARAMA_EXAMPLES_DESC" filter="string"/>
+                <field name="examples_en" type="text" default="Lampsacus, winged horse, Ephesus" label="MOD_NUMISTR_ARAMA_EXAMPLES_EN_LABEL" description="MOD_NUMISTR_ARAMA_EXAMPLES_DESC" filter="string"/>
+                <field name="api_base" type="text" default="/api/index.php/v1/search" label="MOD_NUMISTR_ARAMA_API_LABEL" description="MOD_NUMISTR_ARAMA_API_DESC" filter="string"/>
+            </fieldset>
+            <fieldset name="advanced">
+                <field name="layout" type="modulelayout" label="JFIELD_ALT_LAYOUT_LABEL" class="form-select" validate="moduleLayout"/>
+                <field name="moduleclass_sfx" type="textarea" label="COM_MODULES_FIELD_MODULECLASS_SFX_LABEL" rows="3" validate="CssIdentifier"/>
+                <field name="cache" type="list" default="0" label="COM_MODULES_FIELD_CACHING_LABEL">
+                    <option value="0">COM_MODULES_FIELD_VALUE_NOCACHING</option>
+                </field>
+            </fieldset>
+        </fields>
+    </config>
+</extension>
