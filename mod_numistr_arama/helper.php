@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Search Module
  * @subpackage  mod_numistr_arama
- * @version     1.0.2
+ * @version     1.0.3
  * @copyright   Copyright (C) 2026 NumisTR. All rights reserved.
  * @license     GNU General Public License version 2 or later
  *
@@ -13,7 +13,7 @@ defined('_JEXEC') or die;
 
 class ModNumistrAramaHelper
 {
-    public const VERSION = '1.0.2';
+    public const VERSION = '1.0.3';
     public const MAX_Q = 60;
 
     /** Joomla dil etiketi → 'tr' | 'en'. */

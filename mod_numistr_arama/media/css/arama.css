@@ -1,4 +1,4 @@
-/* NumisTR site araması — mod_numistr_arama 1.0.2 (16 Kas 2026). Renkler sitenin paletinden; metin kontrastı ≥ 4.5:1. */
+/* NumisTR site araması — mod_numistr_arama 1.0.3 (16 Kas 2026). Renkler sitenin paletinden; metin kontrastı ≥ 4.5:1. */
 .nma { --nma-mor: #3d1a4a; --nma-mor-2: #5c2c6e; --nma-metin: #5f5e5e; --nma-soluk: #767676; --nma-cizgi: #eee8f0; --nma-zemin: #f5f2f6; --nma-krem: #f7f4ef; --nma-vurgu: #f3e7c9; --nma-altin: #8a5f1a; font-family: inherit; color: var(--nma-metin); }
 .nma *, .nma *::before, .nma *::after { box-sizing: border-box; }
 .nma-sr { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -61,3 +61,45 @@
 .nma-daha:hover { background: var(--nma-zemin); }
 .nma-ipucu { margin-top: 28px; padding: 16px; background: var(--nma-krem); border-radius: 10px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.5; }
 .nma-ipucu strong { font-size: 16px; color: var(--nma-mor); }
+
+/* ---- ana sayfa blokları (1.0.3, 16 Kas 2026, BACKLOG C16 / onaylı maket) — YOOtheme HTML öğelerinde kullanılır */
+.nma-ana-kutu { margin: 26px auto 0; max-width: 720px; text-align: left; }
+.nma-ana-kutu .nma-form { margin: 0 auto; }
+.nma-ana-kutu .nma-ornek { justify-content: center; }
+.nma-ana-h { margin: 0 0 18px; font-size: 26px; line-height: 1.25; font-weight: 800; color: #3d1a4a; }
+.nma-ana-sayilar { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; color: #5f5e5e; }
+.nma-ana-sayilar > div { display: flex; flex-direction: column; gap: 2px; }
+.nma-ana-sayilar strong { font-size: 34px; line-height: 1.1; font-weight: 800; color: #3d1a4a; }
+.nma-ana-sayilar span { font-size: 15px; }
+.nma-ana-kapilar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.nma-ana-kapi { display: flex; flex-direction: column; border: 1px solid #eee8f0; border-radius: 12px; overflow: hidden; background: #fff; color: #5f5e5e; text-decoration: none !important; }
+.nma-ana-kapi:hover strong, .nma-ana-kapi:focus-visible strong { text-decoration: underline; }
+.nma-ana-kapi-gorsel { height: 200px; background: #f5f2f6; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.nma-ana-kapi-gorsel img { width: 100%; height: 100%; object-fit: cover; }
+.nma-ana-kapi-gorsel--sikke img { width: auto; height: 180px; object-fit: contain; }
+.nma-ana-kapi-gorsel--harita { background: #f7f4ef; color: #8a5f1a; }
+.nma-ana-kapi-metin { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 6px; }
+.nma-ana-kapi-metin strong { font-size: 20px; font-weight: 800; color: #3d1a4a; }
+.nma-ana-kapi-metin span { font-size: 15px; line-height: 1.45; }
+.nma-ana-baslik { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.nma-ana-baslik .nma-ana-h { margin: 0; }
+.nma-ana-baslik a { font-size: 15px; font-weight: 700; color: #8a5f1a; }
+@media (max-width: 959px) {
+  .nma-ana-sayilar { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .nma-ana-sayilar strong { font-size: 26px; }
+  .nma-ana-sayilar > div:last-child { grid-column: 1 / -1; }
+  .nma-ana-kapilar { grid-template-columns: 1fr; gap: 14px; }
+  .nma-ana-kapi { flex-direction: row; align-items: center; gap: 14px; padding: 12px; }
+  .nma-ana-kapi-gorsel { width: 92px; height: 92px; flex: none; border-radius: 8px; }
+  .nma-ana-kapi-gorsel--sikke img { height: 88px; }
+  .nma-ana-kapi-gorsel--harita svg { width: 56px; height: 56px; }
+  .nma-ana-kapi-metin { padding: 0; }
+  .nma-ana-kapi-metin strong { font-size: 18px; }
+  .nma-ana-kapi-metin span { font-size: 14px; }
+  .nma-ana-h { font-size: 22px; }
+}
+@media (max-width: 639px) {
+  .nma-ana-hikayeler.uk-grid, .nma-ana-hikayeler .uk-grid { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 6px; }
+  .nma-ana-hikayeler.uk-grid::-webkit-scrollbar, .nma-ana-hikayeler .uk-grid::-webkit-scrollbar { display: none; }
+  .nma-ana-hikayeler.uk-grid > *, .nma-ana-hikayeler .uk-grid > * { flex: 0 0 82%; width: 82%; scroll-snap-align: start; }
+}

@@ -1,5 +1,5 @@
 /*!
- * NumisTR site araması — sonuç sayfası (mod_numistr_arama 1.0.2, 16 Kas 2026)
+ * NumisTR site araması — sonuç sayfası (mod_numistr_arama 1.0.3, 16 Kas 2026)
  * Veri: GET /api/index.php/v1/search (plg_webservices_numistr 1.26.0). Toplam sonuç sayısı gösterilmez.
  * DOM yalnız textContent ile kurulur (API verisi HTML olarak basılmaz).
  * Saf işlevler Node ile test edilir: node Module/tests/arama_js_test.js
