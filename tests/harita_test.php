@@ -92,12 +92,21 @@ namespace {
     $anaListe = array_map(function ($x) { return array($x[1], round((float) $x[2], 3), round((float) $x[3], 3)); }, $mm);
     check('kentler: Antik Harita sayfasındaki listeyle aynı', $anaListe == $bekle, count($anaListe) . ' kent');
 
-    // Bozuk veri dosyası sayfayı kırmaz
-    $yedek = __DIR__ . '/../mod_numistr_harita/data/ancient_major_cities.json';
-    $icerik = file_get_contents($yedek);
-    file_put_contents($yedek, '{bozuk');
-    $c2 = bas(array('harita' => 'sikke', 'api_key' => 'K'));
-    file_put_contents($yedek, $icerik);
+    // Bozuk veri dosyası sayfayı kırmaz (gerçek dosyaya dokunmadan, geçici kopyada)
+    $gecici = sys_get_temp_dir() . '/nmh_harita_test_' . getmypid();
+    @mkdir($gecici . '/tmpl', 0700, true);
+    @mkdir($gecici . '/data', 0700, true);
+    copy(__DIR__ . '/../mod_numistr_harita/tmpl/sikke.php', $gecici . '/tmpl/sikke.php');
+    file_put_contents($gecici . '/data/ancient_major_cities.json', '{bozuk');
+    $anahtar = 'K';
+    ob_start();
+    include $gecici . '/tmpl/sikke.php';
+    $c2 = ob_get_clean();
+    @unlink($gecici . '/data/ancient_major_cities.json');
+    @unlink($gecici . '/tmpl/sikke.php');
+    @rmdir($gecici . '/data');
+    @rmdir($gecici . '/tmpl');
+    @rmdir($gecici);
     check('kentler: veri okunamazsa boş listeyle çizer', strpos($c2, 'var VERI = {"cities":[]};') !== false);
 
     // ---- Anadolu haritası
