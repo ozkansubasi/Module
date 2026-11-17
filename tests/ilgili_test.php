@@ -65,7 +65,7 @@ $g = $H::etiketGruplari(array(
     array('alias' => 'sardes', 'ust' => 'yerler'), array('alias' => 'alexander-iii-of-macedon', 'ust' => 'hukumdarlar'),
     array('alias' => 'sardes', 'ust' => 'yerler'), array('alias' => 'darphane-belirsiz', 'ust' => 'root'), array('alias' => '', 'ust' => 'yerler'),
 ));
-check('gruplar ayrışır, tekrar yok, ilgisiz atlanır', $g === array('yer' => array('sardes'), 'hukumdar' => array('alexander-iii-of-macedon')));
+check('gruplar ayrışır, tekrar yok, ilgisiz atlanır', $g === array('yer' => array('sardes'), 'hukumdar' => array('alexander-iii-of-macedon'), 'bolge' => array(), 'donem' => array()));
 
 // ---- görselli önde
 $s = $H::gorselliOnde(array(array('id' => 1, 'gorsel' => null), array('id' => 2, 'gorsel' => 'u2'), array('id' => 3, 'gorsel' => 'u3'),
@@ -89,6 +89,20 @@ check('arama adresi TR', $H::aramaUrl('tr-TR', 'Kroisos') === '/tr/arama?q=Krois
 check('arama adresi EN + kodlama', $H::aramaUrl('en-GB', 'Alyattes I of Lydia') === '/en/search?q=Alyattes%20I%20of%20Lydia');
 check('uygulama adresi utm', $H::uygulamaUrl('tr-TR', 13034) === '/tr/app?utm_source=numistr&utm_medium=blog&utm_campaign=blog-cta&utm_content=13034');
 check('uygulama adresi EN', strpos($H::uygulamaUrl('en-GB', 1), '/en/app?') === 0);
+
+// --- C18-D: bölge / dönem etiketleri
+check('notCoz', $H::notCoz('en=Lydia;kat=17') === array('en' => 'Lydia', 'kat' => '17'));
+check('notCoz boş / bozuk', $H::notCoz('') === array() && $H::notCoz('x;=y;a=b=c') === array('a' => 'b=c'));
+$lid = array('id' => 303, 'alias' => 'bolge-lydia', 'ad' => 'Lidya', 'not' => 'en=Lydia;kat=17', 'ust' => 'bolgeler');
+$ark = array('id' => 319, 'alias' => 'donem-arkaik', 'ad' => 'Arkaik', 'not' => 'en=Archaic;aralik=MÖ ~650–480', 'ust' => 'donemler');
+check('etiketAdi TR', $H::etiketAdi($lid, 'tr-TR') === 'Lidya');
+check('etiketAdi EN', $H::etiketAdi($lid, 'en-GB') === 'Lydia');
+check('etiketAdi EN notsuz → başlık', $H::etiketAdi(array('ad' => 'Troas', 'not' => ''), 'en-GB') === 'Troas');
+$g2 = $H::etiketGruplari(array($lid, $ark, $lid, array('alias' => 'sardes', 'ust' => 'yerler')));
+check('gruplar: bölge tekil', count($g2['bolge']) === 1 && $g2['bolge'][0]['id'] === 303);
+check('gruplar: dönem', count($g2['donem']) === 1 && $g2['donem'][0]['alias'] === 'donem-arkaik');
+check('gruplar: yer korunur', $g2['yer'] === array('sardes') && $g2['hukumdar'] === array());
+check('sayfaTuru: yalnız bölge/dönem etiketi yazı yapmaz', $H::sayfaTuru(array(), array($lid, $ark)) === '');
 
 echo "\n{$gecti} passed, {$kaldi} failed\n";
 exit($kaldi ? 1 : 0);

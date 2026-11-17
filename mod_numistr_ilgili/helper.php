@@ -35,9 +35,12 @@ class ModNumistrIlgiliHelper
 
     const UST_YER      = 'yerler';
     const UST_HUKUMDAR = 'hukumdarlar';
+    const UST_BOLGE    = 'bolgeler';    // C18-D: not "en=Lydia;kat=17" (katalog bölge kategorisi)
+    const UST_DONEM    = 'donemler';    // C18-D: not "en=Archaic;aralik=…"
 
     /** Yazı sayfasında en çok kaç yer / hükümdar etiketi için blok üretilir. */
     const ETIKET_SINIRI = 3;
+    const CIP_SINIRI    = 2;   // üst bilgide tür başına çip (bölge / yer / hükümdar)
 
     /** Blog kategorileri (TR 35–40, EN 107–112): yazı sayfası olarak işlenir (etiket olmasa da seri / uygulama blokları). */
     const BLOG_KATEGORILERI = '35,36,37,38,39,40,107,108,109,110,111,112';
@@ -159,13 +162,20 @@ class ModNumistrIlgiliHelper
     /** Etiket listesini üst etikete göre ayırır: ['yer' => [alias..], 'hukumdar' => [alias..]] (sıra korunur, tekrar yok). */
     public static function etiketGruplari(array $etiketler)
     {
-        $g = array('yer' => array(), 'hukumdar' => array());
+        $g = array('yer' => array(), 'hukumdar' => array(), 'bolge' => array(), 'donem' => array());
 
         foreach ($etiketler as $e) {
             $a = (string) ($e['alias'] ?? '');
 
             if ($a === '') {
                 continue;
+            }
+
+            // bölge / dönem: tam kayıt (id, ad, not) — çip, dönem metni ve benzer yazı sorgusu için
+            foreach (array('bolge' => self::UST_BOLGE, 'donem' => self::UST_DONEM) as $grup => $ust) {
+                if (($e['ust'] ?? '') === $ust && !in_array($a, array_column($g[$grup], 'alias'), true)) {
+                    $g[$grup][] = $e;
+                }
             }
 
             if (($e['ust'] ?? '') === self::UST_YER && !in_array($a, $g['yer'], true)) {
@@ -301,7 +311,8 @@ class ModNumistrIlgiliHelper
     {
         $db = self::db();
         $q  = $db->getQuery(true)
-            ->select(array($db->quoteName('t.alias', 'alias'), $db->quoteName('p.alias', 'ust')))
+            ->select(array($db->quoteName('t.id', 'id'), $db->quoteName('t.alias', 'alias'), $db->quoteName('t.title', 'ad'),
+                $db->quoteName('t.note', 'not'), $db->quoteName('p.alias', 'ust')))
             ->from($db->quoteName('#__contentitem_tag_map', 'm'))
             ->join('INNER', $db->quoteName('#__tags', 't') . ' ON ' . $db->quoteName('t.id') . ' = ' . $db->quoteName('m.tag_id'))
             ->join('INNER', $db->quoteName('#__tags', 'p') . ' ON ' . $db->quoteName('p.id') . ' = ' . $db->quoteName('t.parent_id'))
@@ -310,8 +321,10 @@ class ModNumistrIlgiliHelper
             ->where($db->quoteName('t.published') . ' = 1');
         $db->setQuery($q);
 
-        return array_map(function ($r) { return array('alias' => (string) $r->alias, 'ust' => (string) $r->ust); },
-            (array) $db->loadObjectList());
+        return array_map(function ($r) {
+            return array('id' => (int) $r->id, 'alias' => (string) $r->alias, 'ad' => (string) $r->ad, 'not' => (string) $r->not,
+                'ust' => (string) $r->ust);
+        }, (array) $db->loadObjectList());
     }
 
     /** Association ile makalenin $dil karşılığı; yoksa kendisi. */
@@ -630,19 +643,49 @@ class ModNumistrIlgiliHelper
     }
 
     /** Üst bilgi çipleri: yer → yerleşim sayfası (yoksa arama), hükümdar → site araması. */
+    /** Etiket notu "en=Lydia;kat=17" → ['en' => 'Lydia', 'kat' => '17']. */
+    public static function notCoz($not)
+    {
+        $s = array();
+
+        foreach (explode(';', (string) $not) as $parca) {
+            $kv = explode('=', $parca, 2);
+
+            if (count($kv) === 2 && trim($kv[0]) !== '') {
+                $s[trim($kv[0])] = trim($kv[1]);
+            }
+        }
+
+        return $s;
+    }
+
+    /** Bölge / dönem etiketinin görünen adı: EN sayfada nottaki İngilizce ad, yoksa etiket başlığı. */
+    public static function etiketAdi(array $e, $dil)
+    {
+        $en = self::notCoz($e['not'] ?? '')['en'] ?? '';
+
+        return $dil === 'en-GB' && $en !== '' ? $en : (string) ($e['ad'] ?? $e['alias'] ?? '');
+    }
+
     public static function etiketCipleri(array $etiketler, $dil)
     {
         $g      = self::etiketGruplari($etiketler);
         $cipler = array();
 
-        foreach (array_slice($g['yer'], 0, self::ETIKET_SINIRI) as $alias) {
+        foreach (array_slice($g['bolge'], 0, self::CIP_SINIRI) as $e) {
+            $kat      = (int) (self::notCoz($e['not'] ?? '')['kat'] ?? 0);
+            $cipler[] = array('tur' => 'bolge', 'ad' => self::etiketAdi($e, $dil),
+                'url' => $kat > 0 ? Route::_(RouteHelper::getCategoryRoute($kat, $dil)) : self::aramaUrl($dil, self::etiketAdi($e, $dil)));
+        }
+
+        foreach (array_slice($g['yer'], 0, self::CIP_SINIRI) as $alias) {
             $yer      = self::yerlesimler(array(self::darphaneAnahtari($alias)), $dil);
             $cipler[] = $yer
                 ? array('tur' => 'yer', 'ad' => $yer[0]['baslik'], 'url' => $yer[0]['url'])
                 : array('tur' => 'yer', 'ad' => $alias, 'url' => self::aramaUrl($dil, $alias));
         }
 
-        foreach (self::hukumdarAdlari(array_slice($g['hukumdar'], 0, self::ETIKET_SINIRI)) as $ad) {
+        foreach (self::hukumdarAdlari(array_slice($g['hukumdar'], 0, self::CIP_SINIRI)) as $ad) {
             $cipler[] = array('tur' => 'hukumdar', 'ad' => $ad, 'url' => self::aramaUrl($dil, $ad));
         }
 
@@ -687,6 +730,8 @@ class ModNumistrIlgiliHelper
                 'tarih'  => $ozet['tarih'],
                 'dakika' => self::okumaSuresi($ozet['kelime'], (int) ($secenek['okuma_hizi'] ?? self::OKUMA_HIZI)),
                 'cipler' => self::etiketCipleri($etiketler, $dil),
+                'donem'  => array_map(function ($e) use ($dil) { return self::etiketAdi($e, $dil); },
+                    self::etiketGruplari($etiketler)['donem']),
             );
 
             return array('tur' => 'yazi', 'blog' => true, 'bloklar' => array($ust));
@@ -724,9 +769,16 @@ class ModNumistrIlgiliHelper
                 $seri    = self::seriYazilari($ozet['catid'], $dil, $id, max(1, (int) ($secenek['seri_limit'] ?? 4)));
                 $seriIds = array_column($seri, 'id');
                 $g       = self::etiketGruplari($etiketler);
+                $yaziLim = max(1, (int) ($secenek['yazi_limit'] ?? 6));
                 $konu    = array_values(array_filter(
-                    self::yazilar($g['yer'], $g['hukumdar'], $dil, $id, max(1, (int) ($secenek['yazi_limit'] ?? 6)) + count($seriIds)),
+                    self::yazilar($g['yer'], $g['hukumdar'], $dil, $id, $yaziLim + count($seriIds)),
                     function ($y) use ($seriIds) { return !in_array($y['id'], $seriIds, true); }));
+
+                // Yer / hükümdar eşleşmesi azsa: aynı bölge + dönem, sonra aynı bölge, sonra aynı dönem (C18-D)
+                if (count($konu) < $yaziLim && ($g['bolge'] || $g['donem'])) {
+                    $konu = array_merge($konu, self::benzerYazilar(array_column($g['bolge'], 'id'), array_column($g['donem'], 'id'), $dil,
+                        array_merge(array($id), $seriIds, array_column($konu, 'id')), $yaziLim - count($konu)));
+                }
 
                 $bloklar[] = self::blok('kart', 'MOD_NUMISTR_ILGILI_SERININ_YAZILARI', $ozet['kat_baslik'], $seri);
 
@@ -780,6 +832,41 @@ class ModNumistrIlgiliHelper
     private static function blok($tur, $anahtar, $arg, array $ogeler)
     {
         return array('tur' => $tur, 'baslik' => array($anahtar, (string) $arg), 'ogeler' => array_values($ogeler));
+    }
+
+    /**
+     * Aynı bölge ve / veya dönem etiketli yazılar: puan = 2 × bölge eşleşmesi + dönem eşleşmesi, sonra en yeni (C18-D).
+     *
+     * @return  array  [['id','baslik','url'], ...]
+     */
+    public static function benzerYazilar(array $bolgeIds, array $donemIds, $dil, array $haric, $limit)
+    {
+        $bolgeIds = array_values(array_filter(array_map('intval', $bolgeIds)));
+        $donemIds = array_values(array_filter(array_map('intval', $donemIds)));
+
+        if ((!$bolgeIds && !$donemIds) || $limit < 1) {
+            return array();
+        }
+
+        $db    = self::db();
+        $hepsi = array_merge($bolgeIds, $donemIds);
+        $puan  = ($bolgeIds ? '2 * MAX(CASE WHEN ' . $db->quoteName('m.tag_id') . ' IN (' . implode(',', $bolgeIds) . ') THEN 1 ELSE 0 END)' : '0')
+            . ' + ' . ($donemIds ? 'MAX(CASE WHEN ' . $db->quoteName('m.tag_id') . ' IN (' . implode(',', $donemIds) . ') THEN 1 ELSE 0 END)' : '0');
+        $q     = self::yayinda($db, $db->getQuery(true)
+            ->select(array_merge($db->quoteName(array('c.id', 'c.title', 'c.alias', 'c.catid', 'c.language', 'c.publish_up')),
+                array($puan . ' AS ' . $db->quoteName('puan'))))
+            ->from($db->quoteName('#__contentitem_tag_map', 'm'))
+            ->join('INNER', $db->quoteName('#__content', 'c') . ' ON ' . $db->quoteName('c.id') . ' = ' . $db->quoteName('m.content_item_id'))
+            ->where($db->quoteName('m.type_alias') . ' = ' . $db->quote('com_content.article'))
+            ->where($db->quoteName('m.tag_id') . ' IN (' . implode(',', $hepsi) . ')')
+            ->whereIn($db->quoteName('c.language'), array($dil, '*'), ParameterType::STRING)
+            ->where($db->quoteName('c.id') . ' NOT IN (' . implode(',', array_map('intval', $haric ?: array(0))) . ')')
+            ->group($db->quoteName(array('c.id', 'c.title', 'c.alias', 'c.catid', 'c.language', 'c.publish_up')))
+            ->order($db->quoteName('puan') . ' DESC, ' . $db->quoteName('c.publish_up') . ' DESC')
+            ->setLimit((int) $limit));
+        $db->setQuery($q);
+
+        return array_map(array(__CLASS__, 'satir'), (array) $db->loadObjectList());
     }
 
     private static function satir($r)

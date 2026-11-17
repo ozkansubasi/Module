@@ -84,6 +84,7 @@
   text-decoration: none;
 }
 .nmi-cip:hover { background: #e7dcc5; text-decoration: none; color: #2b2418; }
+.nmi-cip-bolge { background: #fff; border: 1px solid #d9cdb4; font-weight: 600; }
 .nmi-cip-yer::before { content: "◉ "; color: #8b6914; }
 
 /* --- Seri kartları --- */

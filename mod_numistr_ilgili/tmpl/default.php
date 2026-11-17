@@ -8,7 +8,7 @@
  *   hukumdar (hükümdar + sikke sayısı) |
  *   kart     (aynı serinin yazıları: giriş görselli kart; görsel yoksa seri adıyla yer tutucu) |
  *   cta      (uygulama kartı: fotoğrafla tanıma) |
- *   ust      (bolum=ust: seri rozeti, tarih, okuma süresi, yer / hükümdar çipleri; başlığın üstünde).
+ *   ust      (bolum=ust: seri rozeti, tarih, okuma süresi, dönem; bölge / yer / hükümdar çipleri; başlığın üstünde).
  */
 
 defined('_JEXEC') or die;
@@ -32,6 +32,11 @@ if (($veri['bloklar'][0]['tur'] ?? '') === 'ust') :
         <?php if ($u['tarih']) : ?><time datetime="<?php echo $h(substr((string) $u['tarih'], 0, 10)); ?>"><?php echo $h($tarihYaz($u['tarih'])); ?></time><?php endif; ?>
         <span aria-hidden="true">·</span>
         <span><?php echo $h(Text::sprintf('MOD_NUMISTR_ILGILI_OKUMA_SURESI', (int) $u['dakika'])); ?></span>
+        <?php if (!empty($u['donem'])) : ?>
+            <span aria-hidden="true">·</span>
+            <span class="nmi-ust-donem"><?php echo $h(Text::sprintf(count($u['donem']) > 1 ? 'MOD_NUMISTR_ILGILI_DONEM_COK' : 'MOD_NUMISTR_ILGILI_DONEM_TEK',
+                implode(Text::_('MOD_NUMISTR_ILGILI_VE'), $u['donem']))); ?></span>
+        <?php endif; ?>
     </p>
     <?php if (!empty($u['cipler'])) : ?>
         <ul class="nmi-ust-cipler" aria-label="<?php echo $h(Text::_('MOD_NUMISTR_ILGILI_ETIKETLER')); ?>">
