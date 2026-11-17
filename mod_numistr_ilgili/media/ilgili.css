@@ -37,6 +37,10 @@
 }
 
 /* --- Üst bilgi (bolum=ust) --- */
+/* YOOtheme "top" konumunda ayrı bölüm olarak basılır: bölüm boşlukları rozeti başlığa yaklaştıracak biçimde kısılır. */
+.tm-top:has(.nmi-ust) { padding-bottom: 0; }
+.tm-top:has(.nmi-ust) + .tm-main { padding-top: 0; }
+.tm-top:has(.nmi-ust) + .tm-main h1.uk-article-title { margin-top: 18px !important; }
 .nmi-ust {
   max-width: 70ch;
   margin: 0 auto;
