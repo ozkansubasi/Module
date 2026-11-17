@@ -60,7 +60,9 @@ if (empty($veri['bloklar'])) {
 
 // Okunabilirlik + blok biçemi yalnız blog yazısında (makale gövdesini de etkilediği için sikke / yerleşim sayfasında yüklenmez).
 if (!empty($veri['blog'])) {
-    HTMLHelper::_('stylesheet', 'mod_numistr_ilgili/ilgili.css', array('version' => 'auto', 'relative' => true));
+    // Sürüm = dosya zamanı: Cloudflare biçemi adresle önbelleğe alıyor; Joomla 'auto' sürümü dosya değişince değişmiyordu (1.2.0'da TR eski CSS)
+    $surum = @filemtime(JPATH_ROOT . '/media/mod_numistr_ilgili/css/ilgili.css');
+    HTMLHelper::_('stylesheet', 'mod_numistr_ilgili/ilgili.css', array('version' => $surum ? (string) $surum : 'auto', 'relative' => true));
 }
 
 require ModuleHelper::getLayoutPath('mod_numistr_ilgili', $params->get('layout', 'default'));
