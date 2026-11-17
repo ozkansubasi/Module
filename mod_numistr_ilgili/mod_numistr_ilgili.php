@@ -11,6 +11,7 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\ModuleHelper;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Log\Log;
 
 require_once __DIR__ . '/helper.php';
@@ -33,7 +34,16 @@ $cacheparams               = new \stdClass();
 $cacheparams->cachemode    = 'safeuri';
 $cacheparams->class        = 'ModNumistrIlgiliHelper';
 $cacheparams->method       = 'veri';
-$cacheparams->methodparams = array($makaleId, $dil, (int) $params->get('limit', 8));
+$secenek = array(
+    'bolum'      => (string) $params->get('bolum', 'alt'),
+    'blog'       => (string) $params->get('blog_kategorileri', ModNumistrIlgiliHelper::BLOG_KATEGORILERI),
+    'seri_limit' => (int) $params->get('seri_limit', 4),
+    'yazi_limit' => (int) $params->get('yazi_limit', 6),
+    'cta'        => (int) $params->get('cta', 1),
+    'okuma_hizi' => (int) $params->get('okuma_hizi', ModNumistrIlgiliHelper::OKUMA_HIZI),
+);
+
+$cacheparams->methodparams = array($makaleId, $dil, (int) $params->get('limit', 8), $secenek);
 $cacheparams->modeparams   = array('option' => 'WORD', 'view' => 'WORD', 'id' => 'INT', 'lang' => 'CMD');
 
 try {
@@ -46,6 +56,11 @@ try {
 
 if (empty($veri['bloklar'])) {
     return;
+}
+
+// Okunabilirlik + blok biçemi yalnız blog yazısında (makale gövdesini de etkilediği için sikke / yerleşim sayfasında yüklenmez).
+if (!empty($veri['blog'])) {
+    HTMLHelper::_('stylesheet', 'mod_numistr_ilgili/ilgili.css', array('version' => 'auto', 'relative' => true));
 }
 
 require ModuleHelper::getLayoutPath('mod_numistr_ilgili', $params->get('layout', 'default'));

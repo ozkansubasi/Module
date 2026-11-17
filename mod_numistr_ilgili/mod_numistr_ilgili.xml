@@ -7,7 +7,7 @@
     <license>GNU General Public License version 2 or later</license>
     <authorEmail>info@numistr.org</authorEmail>
     <authorUrl>https://www.numistr.org</authorUrl>
-    <version>1.0.1</version>
+    <version>1.1.0</version>
     <description>MOD_NUMISTR_ILGILI_XML_DESCRIPTION</description>
 
     <files>
@@ -17,6 +17,10 @@
         <folder>data</folder>
         <folder>language</folder>
     </files>
+
+    <media destination="mod_numistr_ilgili" folder="media">
+        <filename>ilgili.css</filename>
+    </media>
 
     <languages>
         <language tag="en-GB">language/en-GB/mod_numistr_ilgili.ini</language>
@@ -29,6 +33,18 @@
         <fields name="params">
             <fieldset name="basic">
                 <field name="limit" type="number" label="MOD_NUMISTR_ILGILI_LIMIT_LABEL" default="8" min="1" max="24" filter="integer"/>
+                <field name="bolum" type="list" label="MOD_NUMISTR_ILGILI_BOLUM_LABEL" description="MOD_NUMISTR_ILGILI_BOLUM_DESC" default="alt" filter="cmd">
+                    <option value="alt">MOD_NUMISTR_ILGILI_BOLUM_ALT</option>
+                    <option value="ust">MOD_NUMISTR_ILGILI_BOLUM_UST</option>
+                </field>
+                <field name="blog_kategorileri" type="text" label="MOD_NUMISTR_ILGILI_BLOG_LABEL" description="MOD_NUMISTR_ILGILI_BLOG_DESC" default="35,36,37,38,39,40,107,108,109,110,111,112" filter="string"/>
+                <field name="seri_limit" type="number" label="MOD_NUMISTR_ILGILI_SERI_LIMIT_LABEL" default="4" min="1" max="12" filter="integer"/>
+                <field name="yazi_limit" type="number" label="MOD_NUMISTR_ILGILI_YAZI_LIMIT_LABEL" default="6" min="1" max="12" filter="integer"/>
+                <field name="cta" type="radio" label="MOD_NUMISTR_ILGILI_CTA_LABEL" default="1" layout="joomla.form.field.radio.switcher" filter="integer">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="okuma_hizi" type="number" label="MOD_NUMISTR_ILGILI_OKUMA_HIZI_LABEL" default="200" min="100" max="400" filter="integer"/>
             </fieldset>
             <fieldset name="advanced">
                 <field name="layout" type="modulelayout" label="JFIELD_ALT_LAYOUT_LABEL" class="form-select" validate="moduleLayout"/>

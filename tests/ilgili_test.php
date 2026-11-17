@@ -72,5 +72,23 @@ $s = $H::gorselliOnde(array(array('id' => 1, 'gorsel' => null), array('id' => 2,
     array('id' => 4, 'gorsel' => null)), 3);
 check('görselli önde, sıra korunur, sınır', array_column($s, 'id') === array(2, 3, 1));
 
+
+// ---- 1.1.0: blog yazısı yardımcıları
+check('kategori listesi boş → varsayılan 12', count($H::kategoriListesi('')) === 12 && in_array(39, $H::kategoriListesi(''), true));
+check('kategori listesi ayrıştırma', $H::kategoriListesi(' 35, 36;x,,40 ') === array(35, 36, 40));
+check('kelime sayısı HTML', $H::kelimeSayisi('<p>Bir iki <b>üç</b></p><script>var a=1 2 3;</script><p>dört&nbsp;beş</p>') === 5);
+check('kelime sayısı boş', $H::kelimeSayisi('<p> </p>') === 0);
+check('okuma süresi en az 1', $H::okumaSuresi(0) === 1 && $H::okumaSuresi(150) === 1);
+check('okuma süresi yuvarlama', $H::okumaSuresi(401) === 3 && $H::okumaSuresi(400) === 2);
+check('okuma süresi hız', $H::okumaSuresi(600, 300) === 2);
+check('giriş görseli joomlaImage eki', $H::introGorsel('{"image_intro":"images/a b.jpg#joomlaImage://local-images/a.jpg?width=1&height=1"}') === '');
+check('giriş görseli yerel yol köke', $H::introGorsel('{"image_intro":"images/blog/a.jpg#joomlaImage://x"}') === '/images/blog/a.jpg');
+check('giriş görseli tam adres', $H::introGorsel('{"image_intro":"https://www.numistr.org/index.php?option=com_numistr&view=gorsel&id=5&wm=0"}') === 'https://www.numistr.org/index.php?option=com_numistr&view=gorsel&id=5&wm=0');
+check('giriş görseli yok / bozuk JSON', $H::introGorsel('{"image_intro":""}') === '' && $H::introGorsel('x') === '');
+check('arama adresi TR', $H::aramaUrl('tr-TR', 'Kroisos') === '/tr/arama?q=Kroisos');
+check('arama adresi EN + kodlama', $H::aramaUrl('en-GB', 'Alyattes I of Lydia') === '/en/search?q=Alyattes%20I%20of%20Lydia');
+check('uygulama adresi utm', $H::uygulamaUrl('tr-TR', 13034) === '/tr/app?utm_source=numistr&utm_medium=blog&utm_campaign=blog-cta&utm_content=13034');
+check('uygulama adresi EN', strpos($H::uygulamaUrl('en-GB', 1), '/en/app?') === 0);
+
 echo "\n{$gecti} passed, {$kaldi} failed\n";
 exit($kaldi ? 1 : 0);

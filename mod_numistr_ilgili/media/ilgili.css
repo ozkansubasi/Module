@@ -1,0 +1,144 @@
+/* mod_numistr_ilgili 1.1.0 — blog yazısı okunabilirliği + ilgili içerik / üst bilgi blokları.
+   Yalnız blog kategorisindeki makalede yüklenir (modül 'blog' bayrağı). */
+
+/* --- Okunabilirlik: ölçü ~70 karakter, giriş paragrafı, dengeli satır sonu --- */
+.uk-article [property="text"] {
+  max-width: 70ch;
+  margin-left: auto;
+  margin-right: auto;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+}
+.uk-article [property="text"] > p:first-of-type {
+  font-size: 1.08em;
+  line-height: 1.65;
+  color: #3b3226;
+}
+.uk-article [property="text"] h2 {
+  margin-top: 2em;
+  margin-bottom: 0.6em;
+}
+.uk-article [property="text"] h2 + p,
+.uk-article [property="text"] h2 + figure {
+  margin-top: 0;
+}
+/* İki yana yaslama yalnız geniş ekranda ve hecelemeyle (heceleme desteklemeyen tarayıcıda boşluk açılmasın diye
+   mobil sola hizalı kalır). */
+@media (min-width: 960px) {
+  .uk-article [property="text"] p {
+    text-align: justify;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+    hyphenate-limit-chars: 7 3 3;
+  }
+}
+.uk-article h1.uk-article-title {
+  text-wrap: balance;
+}
+
+/* --- Üst bilgi (bolum=ust) --- */
+.nmi-ust {
+  max-width: 70ch;
+  margin: 0 auto;
+  text-align: center;
+}
+.nmi-ust-seri {
+  display: inline-block;
+  padding: 3px 12px;
+  border: 1px solid #b08d57;
+  border-radius: 999px;
+  color: #8b6914;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  text-decoration: none;
+}
+.nmi-ust-seri:hover { background: #f5efe2; text-decoration: none; }
+.nmi-ust-meta {
+  margin: 10px 0 0;
+  color: #6b5f4b;
+  font-size: 0.875rem;
+}
+.nmi-ust-meta span[aria-hidden] { margin: 0 6px; }
+.nmi-ust-cipler {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.nmi-cip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #f1eadb;
+  color: #3b3226;
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+.nmi-cip:hover { background: #e7dcc5; text-decoration: none; color: #2b2418; }
+.nmi-cip-yer::before { content: "◉ "; color: #8b6914; }
+
+/* --- Seri kartları --- */
+.nmi-kart { height: 100%; }
+.nmi-kart-gorsel {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nmi-kart-gorsel img { width: 100%; height: 100%; object-fit: contain; padding: 8px; box-sizing: border-box; transition: transform 0.25s ease; }
+.nmi-kart:hover .nmi-kart-gorsel img { transform: scale(1.04); }
+.nmi-kart-yer { padding: 12px; color: #8b6914; font-weight: 600; text-align: center; }
+.nmi-kart-baslik { display: block; font-size: 0.92rem; line-height: 1.35; color: #2b2418; }
+.nmi-kart-tarih { display: block; margin-top: 6px; }
+
+/* --- Sohbet balonu (mod_numistr_chat) alt konumda boş bir ızgara sütunu kaplıyor; balon sabit konumlu olduğu için
+   sütunu sıfırla (asıl çözüm: modülü yer kaplamayan bir konuma taşımak). --- */
+.tm-bottom .uk-grid > div:has(> .uk-panel > #numistr-assistant-root) {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  padding-left: 0;
+}
+
+/* --- Blog sayfasında alt bloklar makale genişliğinde --- */
+.numistr-ilgili {
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* --- Uygulama kartı (tema kart biçeminden bağımsız) --- */
+.nmi-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  border: 1px solid #e5dccb;
+  border-left: 4px solid #8b6914;
+  border-radius: 8px;
+  background: #faf7f0;
+  color: #2b2418;
+}
+.nmi-cta .uk-h4 { color: #2b2418; }
+.nmi-cta p { color: #5a4e3c; font-size: 0.95rem; }
+.nmi-cta-dugme {
+  flex: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  background: #8b6914;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.nmi-cta-dugme:hover { background: #73560f; color: #fff; text-decoration: none; }
+@media (max-width: 639px) {
+  .nmi-cta { flex-direction: column; align-items: flex-start; }
+}

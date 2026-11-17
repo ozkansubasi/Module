@@ -39,6 +39,12 @@ class ModNumistrIlgiliHelper
     /** Yazı sayfasında en çok kaç yer / hükümdar etiketi için blok üretilir. */
     const ETIKET_SINIRI = 3;
 
+    /** Blog kategorileri (TR 35–40, EN 107–112): yazı sayfası olarak işlenir (etiket olmasa da seri / uygulama blokları). */
+    const BLOG_KATEGORILERI = '35,36,37,38,39,40,107,108,109,110,111,112';
+
+    /** Okuma süresi için dakikadaki kelime. */
+    const OKUMA_HIZI = 200;
+
     // ------------------------------------------------------------------ saf mantık (DB'siz test edilir)
 
     /** authority-name / ad → etiket alias'ı: küçük harf, Türkçe harfler sade, harf-rakam dışı → tire. */
@@ -170,6 +176,56 @@ class ModNumistrIlgiliHelper
         }
 
         return $g;
+    }
+
+    /** "35, 36,x" → [35, 36]; boşsa varsayılan blog kategorileri. */
+    public static function kategoriListesi($metin)
+    {
+        $metin = trim((string) $metin) === '' ? self::BLOG_KATEGORILERI : (string) $metin;
+
+        return array_values(array_unique(array_filter(array_map('intval', preg_split('/[\s,;]+/', $metin)))));
+    }
+
+    /** HTML gövdenin kelime sayısı (betik / biçem ayıklanır). */
+    public static function kelimeSayisi($html)
+    {
+        $metin = preg_replace('~<(script|style)\b.*?</\1>~is', ' ', (string) $html);
+        $metin = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($metin), ENT_QUOTES, 'UTF-8')));
+
+        return $metin === '' ? 0 : count(preg_split('/\s+/u', $metin));
+    }
+
+    /** Okuma süresi (dakika, en az 1). */
+    public static function okumaSuresi($kelime, $hiz = self::OKUMA_HIZI)
+    {
+        return max(1, (int) ceil(max(0, (int) $kelime) / max(1, (int) $hiz)));
+    }
+
+    /** Joomla images JSON'undaki giriş görseli: "#joomlaImage://…" eki atılır; yerel yol köke bağlanır. */
+    public static function introGorsel($imagesJson)
+    {
+        $j   = json_decode((string) $imagesJson, true);
+        $url = trim((string) (is_array($j) ? ($j['image_intro'] ?? '') : ''));
+        $url = preg_replace('~#joomlaImage://.*$~', '', $url);
+
+        if ($url === '' || preg_match('/[\s"\'<>]/', $url)) {
+            return '';
+        }
+
+        return preg_match('~^(https?:)?//|^/~', $url) ? $url : '/' . ltrim($url, '/');
+    }
+
+    /** Site araması (mod_numistr_arama sonuç sayfası). */
+    public static function aramaUrl($dil, $sorgu)
+    {
+        return ($dil === 'en-GB' ? '/en/search' : '/tr/arama') . '?q=' . rawurlencode(trim((string) $sorgu));
+    }
+
+    /** Uygulama sayfası (plg_system_numistrapp), blogdan geldiği ölçülür. */
+    public static function uygulamaUrl($dil, $makaleId)
+    {
+        return ($dil === 'en-GB' ? '/en/app' : '/tr/app')
+            . '?utm_source=numistr&utm_medium=blog&utm_campaign=blog-cta&utm_content=' . (int) $makaleId;
     }
 
     /** Görseli olan sikkeler önde, sıra korunarak en çok $limit tane. */
@@ -526,6 +582,73 @@ class ModNumistrIlgiliHelper
         return $out;
     }
 
+    /** Makale özeti: kategori, tarih, kelime sayısı, giriş görseli. Yayında değilse null. */
+    public static function makaleOzet($id)
+    {
+        $db = self::db();
+        $q  = self::yayinda($db, $db->getQuery(true)
+            ->select($db->quoteName(array('c.id', 'c.title', 'c.alias', 'c.catid', 'c.language', 'c.publish_up', 'c.introtext', 'c.fulltext', 'c.images')))
+            ->select($db->quoteName('k.title', 'kat_baslik'))
+            ->from($db->quoteName('#__content', 'c'))
+            ->join('INNER', $db->quoteName('#__categories', 'k') . ' ON ' . $db->quoteName('k.id') . ' = ' . $db->quoteName('c.catid'))
+            ->where($db->quoteName('c.id') . ' = ' . (int) $id));
+        $db->setQuery($q);
+        $r = $db->loadObject();
+
+        if (!$r) {
+            return null;
+        }
+
+        return array(
+            'id'         => (int) $r->id,
+            'catid'      => (int) $r->catid,
+            'kat_baslik' => trim((string) $r->kat_baslik),
+            'kat_url'    => Route::_(RouteHelper::getCategoryRoute((int) $r->catid, (string) $r->language)),
+            'tarih'      => (string) $r->publish_up,
+            'kelime'     => self::kelimeSayisi($r->introtext . ' ' . $r->fulltext),
+            'gorsel'     => self::introGorsel($r->images),
+        );
+    }
+
+    /** Aynı kategorinin (serinin) yayındaki yazıları, en yeni önce: [['id','baslik','url','gorsel','tarih'], ...]. */
+    public static function seriYazilari($catid, $dil, $haric, $limit)
+    {
+        $db = self::db();
+        $q  = self::yayinda($db, $db->getQuery(true)
+            ->select($db->quoteName(array('c.id', 'c.title', 'c.alias', 'c.catid', 'c.language', 'c.images', 'c.publish_up')))
+            ->from($db->quoteName('#__content', 'c'))
+            ->where($db->quoteName('c.catid') . ' = ' . (int) $catid)
+            ->whereIn($db->quoteName('c.language'), array($dil, '*'), ParameterType::STRING)
+            ->where($db->quoteName('c.id') . ' <> ' . (int) $haric)
+            ->order($db->quoteName('c.publish_up') . ' DESC')
+            ->setLimit(max(1, (int) $limit)));
+        $db->setQuery($q);
+
+        return array_map(function ($r) {
+            return self::satir($r) + array('gorsel' => self::introGorsel($r->images), 'tarih' => (string) $r->publish_up);
+        }, (array) $db->loadObjectList());
+    }
+
+    /** Üst bilgi çipleri: yer → yerleşim sayfası (yoksa arama), hükümdar → site araması. */
+    public static function etiketCipleri(array $etiketler, $dil)
+    {
+        $g      = self::etiketGruplari($etiketler);
+        $cipler = array();
+
+        foreach (array_slice($g['yer'], 0, self::ETIKET_SINIRI) as $alias) {
+            $yer      = self::yerlesimler(array(self::darphaneAnahtari($alias)), $dil);
+            $cipler[] = $yer
+                ? array('tur' => 'yer', 'ad' => $yer[0]['baslik'], 'url' => $yer[0]['url'])
+                : array('tur' => 'yer', 'ad' => $alias, 'url' => self::aramaUrl($dil, $alias));
+        }
+
+        foreach (self::hukumdarAdlari(array_slice($g['hukumdar'], 0, self::ETIKET_SINIRI)) as $ad) {
+            $cipler[] = array('tur' => 'hukumdar', 'ad' => $ad, 'url' => self::aramaUrl($dil, $ad));
+        }
+
+        return $cipler;
+    }
+
     // ------------------------------------------------------------------ bloklar
 
     /**
@@ -534,15 +657,40 @@ class ModNumistrIlgiliHelper
      * @return  array  ['tur' => .., 'bloklar' => [['tur' => sikke|liste|baglanti|hukumdar, 'baslik' => [anahtar, arg],
      *                  'ogeler' => [...]], ...]]
      */
-    public static function veri($id, $dil, $limit)
+    public static function veri($id, $dil, $limit, $secenek = array())
     {
-        $id       = (int) $id;
-        $limit    = max(1, min(24, (int) $limit));
-        $alanlar  = self::alanDegerleri($id);
+        $id        = (int) $id;
+        $limit     = max(1, min(24, (int) $limit));
+        $bolum     = ($secenek['bolum'] ?? 'alt') === 'ust' ? 'ust' : 'alt';
+        $alanlar   = self::alanDegerleri($id);
         $etiketler = self::etiketler($id);
-        $tur      = self::sayfaTuru($alanlar, $etiketler);
-        $bloklar  = array();
-        $h        = self::harita();
+        $tur       = self::sayfaTuru($alanlar, $etiketler);
+        $bloklar   = array();
+        $h         = self::harita();
+        $ozet      = null;
+        $blog      = false;
+
+        // Blog kategorisindeki yazı, etiketi olmasa da yazı sayfasıdır (seri, uygulama ve üst bilgi blokları).
+        if ($tur === '' || $tur === 'yazi') {
+            $ozet = self::makaleOzet($id);
+            $blog = $ozet !== null && in_array($ozet['catid'], self::kategoriListesi($secenek['blog'] ?? ''), true);
+            $tur  = $blog ? 'yazi' : $tur;
+        }
+
+        if ($bolum === 'ust') {
+            if (!$blog) {
+                return array('tur' => $tur, 'blog' => false, 'bloklar' => array());
+            }
+
+            $ust = self::blok('ust', '', '', array(1)) + array(
+                'seri'   => array('baslik' => $ozet['kat_baslik'], 'url' => $ozet['kat_url']),
+                'tarih'  => $ozet['tarih'],
+                'dakika' => self::okumaSuresi($ozet['kelime'], (int) ($secenek['okuma_hizi'] ?? self::OKUMA_HIZI)),
+                'cipler' => self::etiketCipleri($etiketler, $dil),
+            );
+
+            return array('tur' => 'yazi', 'blog' => true, 'bloklar' => array($ust));
+        }
 
         if ($tur === 'yerlesim') {
             $trId        = $dil === 'tr-TR' ? $id : self::karsilik($id, 'tr-TR');
@@ -572,6 +720,25 @@ class ModNumistrIlgiliHelper
             $bloklar[] = self::blok('liste', 'MOD_NUMISTR_ILGILI_YAZILAR', '',
                 self::yazilar(array(self::yerEtiketi($darphane)), $hukumdar !== '' ? array(self::sade($hukumdar)) : array(), $dil, $id, 6));
         } elseif ($tur === 'yazi') {
+            if ($blog) {
+                $seri    = self::seriYazilari($ozet['catid'], $dil, $id, max(1, (int) ($secenek['seri_limit'] ?? 4)));
+                $seriIds = array_column($seri, 'id');
+                $g       = self::etiketGruplari($etiketler);
+                $konu    = array_values(array_filter(
+                    self::yazilar($g['yer'], $g['hukumdar'], $dil, $id, max(1, (int) ($secenek['yazi_limit'] ?? 6)) + count($seriIds)),
+                    function ($y) use ($seriIds) { return !in_array($y['id'], $seriIds, true); }));
+
+                $bloklar[] = self::blok('kart', 'MOD_NUMISTR_ILGILI_SERININ_YAZILARI', $ozet['kat_baslik'], $seri);
+
+                if ((int) ($secenek['cta'] ?? 1) === 1) {
+                    $bloklar[] = self::blok('cta', 'MOD_NUMISTR_ILGILI_UYGULAMA_BASLIK', '',
+                        array(array('url' => self::uygulamaUrl($dil, $id))));
+                }
+
+                $bloklar[] = self::blok('liste', 'MOD_NUMISTR_ILGILI_KONUYLA_ILGILI', '',
+                    array_slice($konu, 0, max(1, (int) ($secenek['yazi_limit'] ?? 6))));
+            }
+
             $g = self::etiketGruplari($etiketler);
 
             foreach (array_slice($g['yer'], 0, self::ETIKET_SINIRI) as $alias) {
@@ -591,7 +758,8 @@ class ModNumistrIlgiliHelper
             }
         }
 
-        return array('tur' => $tur, 'bloklar' => array_values(array_filter($bloklar, function ($b) { return !empty($b['ogeler']); })));
+        return array('tur' => $tur, 'blog' => $blog,
+            'bloklar' => array_values(array_filter($bloklar, function ($b) { return !empty($b['ogeler']); })));
     }
 
     /** Darphanelerin yerleşim makaleleri sayfa dilinde (eşleme TR kimliği verir; EN için association). */
