@@ -19,7 +19,7 @@
     </files>
 
     <media destination="mod_numistr_ilgili" folder="media">
-        <filename>ilgili.css</filename>
+        <folder>css</folder>
     </media>
 
     <languages>
