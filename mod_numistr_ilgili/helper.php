@@ -347,6 +347,27 @@ class ModNumistrIlgiliHelper
         return $r > 0 ? $r : (int) $id;
     }
 
+    /** Kategorinin istenen dildeki eşi (com_categories.item ilişkisi); yoksa kendisi. Bölge çipi: TR 17 → EN 49. */
+    public static function kategoriKarsiligi($id, $dil)
+    {
+        $db = self::db();
+        $q  = $db->getQuery(true)
+            ->select($db->quoteName('c.id'))
+            ->from($db->quoteName('#__associations', 'a1'))
+            ->join('INNER', $db->quoteName('#__associations', 'a2') . ' ON ' . $db->quoteName('a2.key') . ' = '
+                . $db->quoteName('a1.key') . ' AND ' . $db->quoteName('a2.context') . ' = ' . $db->quoteName('a1.context'))
+            ->join('INNER', $db->quoteName('#__categories', 'c') . ' ON ' . $db->quoteName('c.id') . ' = ' . $db->quoteName('a2.id'))
+            ->where($db->quoteName('a1.context') . ' = ' . $db->quote('com_categories.item'))
+            ->where($db->quoteName('a1.id') . ' = ' . (int) $id)
+            ->where($db->quoteName('c.language') . ' = ' . $db->quote($dil))
+            ->where($db->quoteName('c.published') . ' = 1')
+            ->setLimit(1);
+        $db->setQuery($q);
+        $r = (int) $db->loadResult();
+
+        return $r > 0 ? $r : (int) $id;
+    }
+
     /** Yayındaki makaleler (bağlantı için): [['id','baslik','url'], ...] — kimlik sırası korunur. */
     public static function makaleler(array $ids)
     {
@@ -674,6 +695,7 @@ class ModNumistrIlgiliHelper
 
         foreach (array_slice($g['bolge'], 0, self::CIP_SINIRI) as $e) {
             $kat      = (int) (self::notCoz($e['not'] ?? '')['kat'] ?? 0);
+            $kat      = $kat > 0 ? self::kategoriKarsiligi($kat, $dil) : 0;
             $cipler[] = array('tur' => 'bolge', 'ad' => self::etiketAdi($e, $dil),
                 'url' => $kat > 0 ? Route::_(RouteHelper::getCategoryRoute($kat, $dil)) : self::aramaUrl($dil, self::etiketAdi($e, $dil)));
         }
