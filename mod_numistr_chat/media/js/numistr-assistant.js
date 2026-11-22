@@ -77,6 +77,7 @@
             error: 'Üzgünüm, bir hata oluştu. Lütfen tekrar deneyin.',
             thinking: 'Düşünüyorum...',
             sources: 'Kaynaklar',
+            sourceKb: 'NumisTR terim veritabanı',
             cta: 'Ücretsiz üye ol',
             ctaLogin: 'Giriş yap',
             badgeUser: 'Üye',
@@ -105,6 +106,7 @@
             error: 'Sorry, something went wrong. Please try again.',
             thinking: 'Thinking...',
             sources: 'Sources',
+            sourceKb: 'NumisTR terminology database',
             cta: 'Register for free',
             ctaLogin: 'Sign in',
             badgeUser: 'Member',
@@ -540,8 +542,13 @@
                     font-size: 12px;
                 }
                 .numistr-sources .label { font-weight: 600; color: #555; margin-bottom: 2px; }
-                .numistr-sources a { display: block; color: ${CONFIG.primaryColor}; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                .numistr-sources a:hover { text-decoration: underline; }
+                /* 2.4.0: her kaynak ayrı satır (uygulamayla aynı); en çok iki satır */
+                .numistr-sources .numistr-src { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; padding: 2px 0; line-height: 1.35; word-break: break-word; }
+                .numistr-sources a.numistr-src { color: ${CONFIG.primaryColor}; text-decoration: none; }
+                .numistr-sources a.numistr-src:hover { text-decoration: underline; }
+                .numistr-sources .numistr-src.plain { color: #333; }
+                .numistr-sources .numistr-src .ref { font-weight: 700; }
+                .numistr-sources .numistr-src .kb { color: #777; }
                 .numistr-cta {
                     display: inline-block;
                     margin-top: 8px;
@@ -1026,6 +1033,43 @@
             input.focus();
         }
 
+        // 2.4.0 (22.11.2026): her kaynak ayrı satır, uygulamayla aynı. Metindeki [n]
+        // numaraları başta (API 'refs'). Bağlantılı satır yeni sekmede açılır; sözlükte
+        // olmayan terim (API 1.27.0 kind=term, url boş) bağlantısız gösterilir.
+        // Sunucu en çok 10 kaynak gönderir, hepsi gösterilir.
+        function renderSources(sources) {
+            let rows = '';
+
+            sources.slice(0, 10).forEach(function(s) {
+                if (!s) {
+                    return;
+                }
+
+                const url   = typeof s.url === 'string' ? s.url : '';
+                const title = String(s.title || url || '');
+
+                if (!title) {
+                    return;
+                }
+
+                const nums = Array.isArray(s.refs)
+                    ? s.refs.map(Number).filter(function(n) { return Number.isFinite(n) && n > 0; })
+                    : [];
+                const ref  = nums.length ? '<span class="ref">[' + escapeHtml(nums.join(', ')) + ']</span> ' : '';
+
+                if (/^https?:\/\//i.test(url)) {
+                    rows += '<a class="numistr-src" href="' + escapeAttr(url) + '" target="_blank" rel="noopener">'
+                        + ref + escapeHtml(title) + '</a>';
+                } else {
+                    rows += '<span class="numistr-src plain">' + ref + escapeHtml(title)
+                        + (s.kind === 'term' ? '<span class="kb"> · ' + escapeHtml(T.sourceKb) + '</span>' : '')
+                        + '</span>';
+                }
+            });
+
+            return rows ? '<div class="numistr-sources"><div class="label">' + escapeHtml(T.sources) + '</div>' + rows + '</div>' : '';
+        }
+
         function addMessage(text, sender, data, createdAt) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `numistr-message ${sender}`;
@@ -1039,13 +1083,7 @@
             let extra = '';
 
             if (data && Array.isArray(data.sources) && data.sources.length) {
-                extra += '<div class="numistr-sources"><div class="label">' + escapeHtml(T.sources) + '</div>';
-                data.sources.slice(0, 5).forEach(function(s) {
-                    if (s && s.url) {
-                        extra += '<a href="' + escapeAttr(s.url) + '" target="_blank" rel="noopener">' + escapeHtml(s.title || s.url) + '</a>';
-                    }
-                });
-                extra += '</div>';
+                extra += renderSources(data.sources);
             }
 
             if (data && Array.isArray(data.matches) && data.matches.length) {

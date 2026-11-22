@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Chat Module
  * @subpackage  mod_numistr_chat
- * @version     2.3.0
+ * @version     2.4.0
  * @copyright   Copyright (C) 2025-2026 NumisTR. All rights reserved.
  * @license     GNU General Public License version 2 or later
  *
@@ -17,6 +17,9 @@
  *         mesaj sayacinin gizlenmesi.
  * v2.3.0: (14 Kas 2026) Girissiz ziyaretci fotograf dugmesine basinca dosya secici acilmaz;
  *         "giris gerekli" denir ve giris formuna (donus adresiyle) yonlendirilir.
+ * v2.4.0: (22 Kas 2026) Kaynaklar uygulamadaki gibi: her kaynak ayri satir, metindeki [n]
+ *         numaralari basta, en cok 10; sozlukte olmayan terim (API 1.27.0 kind=term, url bos)
+ *         baglantisiz "NumisTR terim veritabani" etiketiyle.
  */
 
 defined('_JEXEC') or die;
