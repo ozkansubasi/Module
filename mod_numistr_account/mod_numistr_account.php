@@ -2,7 +2,7 @@
 /**
  * @package     NumisTR Account Module
  * @subpackage  mod_numistr_account
- * @version     1.2.1
+ * @version     1.3.0
  * @copyright   Copyright (C) 2026 NumisTR. All rights reserved.
  * @license     GNU General Public License version 2 or later
  *
@@ -198,6 +198,7 @@ $t = $lang === 'en' ? [
     'upgrade' => 'Upgrade to PRO', 'manage' => 'Manage subscription', 'logout' => 'Sign out', 'login' => 'Sign in',
     'signup' => 'Create free account', 'account' => 'My account',
     'guest_title' => 'Your NumisTR account', 'guest_desc' => 'One free account for the website and the AnatolianCoins app.',
+    'guest_app_hint' => 'Signed in to the AnatolianCoins app? Sign in here once with the same e-mail to use your account on the website.',
     'profile' => 'Profile', 'email' => 'E-mail', 'member_since' => 'Member since', 'login_method' => 'Sign-in method',
     'm_google' => 'Google', 'm_email' => 'E-mail & password', 'm_facebook' => 'Facebook', 'm_unknown' => '—',
     'password' => 'Change password', 'password_hint' => 'We e-mail you a reset link.', 'delete' => 'Delete my account',
@@ -217,6 +218,7 @@ $t = $lang === 'en' ? [
     'upgrade' => 'PRO\'ya geç', 'manage' => 'Aboneliği yönet', 'logout' => 'Çıkış yap', 'login' => 'Giriş yap',
     'signup' => 'Ücretsiz üye ol', 'account' => 'Hesabım',
     'guest_title' => 'NumisTR hesabınız', 'guest_desc' => 'Web sitesi ve AnatolianCoins uygulaması için tek ücretsiz hesap.',
+    'guest_app_hint' => 'AnatolianCoins uygulamasında oturum açtıysanız web sitesinde de aynı e-postayla bir kez giriş yapın.',
     'profile' => 'Profil', 'email' => 'E-posta', 'member_since' => 'Üyelik tarihi', 'login_method' => 'Giriş yöntemi',
     'm_google' => 'Google', 'm_email' => 'E-posta ve şifre', 'm_facebook' => 'Facebook', 'm_unknown' => '—',
     'password' => 'Şifre değiştir', 'password_hint' => 'E-postanıza sıfırlama bağlantısı göndeririz.', 'delete' => 'Hesabımı sil',

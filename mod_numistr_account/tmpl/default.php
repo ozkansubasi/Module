@@ -25,6 +25,11 @@ if ($mode === 'navbar') : ?>
 .mod-numistr-account .nt-meter{height:8px;border-radius:4px;background:#eee;overflow:hidden;margin:8px 0 4px}
 .mod-numistr-account .nt-meter span{display:block;height:100%;background:linear-gradient(90deg,#8B4513,#D4AF37)}
 .mod-numistr-account .nt-hero{border-radius:16px;padding:24px;background:linear-gradient(135deg,rgba(139,69,19,.08),rgba(212,175,55,.18));margin-bottom:20px}
+@media (max-width:639px){
+.mod-numistr-account .nt-hero{padding:20px}
+.mod-numistr-account .nt-acc-card{padding:18px}
+.mod-numistr-account .nt-acc-actions .uk-button{flex:1 1 100%;text-align:center}
+}
 </style>
 
 <div class="mod-numistr-account<?php echo $sfx; ?>">
@@ -33,9 +38,10 @@ if ($mode === 'navbar') : ?>
         <h3 class="uk-card-title uk-margin-small-bottom"><?php echo $h($t['guest_title']); ?></h3>
         <p class="uk-margin-small"><?php echo $h($t['guest_desc']); ?></p>
         <div class="nt-acc-actions">
-            <a class="uk-button uk-button-primary" href="<?php echo $h($urls['signup']); ?>"><?php echo $h($t['signup']); ?></a>
-            <a class="uk-button uk-button-default" href="<?php echo $h($urls['login']); ?>"><?php echo $h($t['login']); ?></a>
+            <a class="uk-button uk-button-primary" href="<?php echo $h($urls['login']); ?>"><?php echo $h($t['login']); ?></a>
+            <a class="uk-button uk-button-default" href="<?php echo $h($urls['signup']); ?>"><?php echo $h($t['signup']); ?></a>
         </div>
+        <p class="uk-text-meta uk-margin-small-top uk-margin-remove-bottom"><?php echo $h($t['guest_app_hint']); ?></p>
     </div>
 <?php else : ?>
     <div class="nt-hero uk-flex uk-flex-middle uk-flex-between uk-flex-wrap" style="gap:12px">
