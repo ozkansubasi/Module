@@ -14,6 +14,9 @@
  *  - Koordinat sayfadaki "Darphane Koordinatları" / "Mint Coordinates" satırından okunur; ters yazılmışsa
  *    (boylam,enlem) Anadolu aralığına ve sayfanın bölgesine bakılarak düzeltilir.
  * Antik Harita sayfası (anadolu.php) bu sürümde değişmez.
+ * 1.2.0 (25 Kas 2026, PRO değer analizi H1): haritanın altında "Google Haritalar'da göster". PRO oturumda darphane
+ *  koordinatıyla Google Haritalar'ı açar; ücretsiz / misafirde PRO rozetiyle fiyat sayfasına gider (uygulamadaki kuralla aynı).
+ *  PRO bilgisi sunucudan (`$proMu`, galeri modülüyle aynı yol): sayfa önbelleği yalnız misafire uygulanır, Cloudflare HTML'i önbelleğe almaz.
  */
 
 defined('_JEXEC') or die;
@@ -58,9 +61,13 @@ $veri = (string) json_encode(
 .nmh-sikke .nmh-kart h3{margin:0 24px 6px 0;font-size:16px;line-height:1.3;color:#333}
 .nmh-sikke .nmh-ozet{margin:0;font-size:13px;line-height:1.45;color:#555;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;line-clamp:4;overflow:hidden}
 .nmh-sikke .nmh-bag{display:inline-block;margin-top:8px;font-size:13px;font-weight:600;color:#8a5f1a}
+.nmh-sikke .nmh-gm-satir{margin:8px 0 0;text-align:right}
+.nmh-sikke .nmh-gm{font-size:13px;font-weight:600;color:#8a5f1a}
+.nmh-sikke .nmh-pro{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:9px;background:#b7791f;color:#fcf5ed;font-size:10px;line-height:1.6;letter-spacing:.06em;vertical-align:1px}
 .nmh-sikke .nmh-kapat{position:absolute;top:4px;right:4px;width:32px;height:32px;padding:0;border:0;background:none;cursor:pointer;color:#6d4c41;font-size:22px;line-height:1}
 </style>
 <div id="single-mint-map" data-key="<?php echo $h($anahtar); ?>"><div class="nmh-yer"></div></div>
+<p class="nmh-gm-satir" hidden><a id="nmh-gm" class="nmh-gm" data-pro="<?php echo empty($proMu) ? '0' : '1'; ?>"></a></p>
 <script>
 (function () {
     'use strict';
@@ -74,10 +81,12 @@ $veri = (string) json_encode(
     var DIL = EN ? 'en' : 'tr';
     var T = EN ? {
         harita: 'Mint map', yukleniyor: 'Loading the map…', hata: 'The map cannot be loaded right now.',
-        darphane: 'Mint', kent: 'Ancient city', ozetYukleniyor: 'Loading…', bag: 'Open article', kapat: 'Close'
+        darphane: 'Mint', kent: 'Ancient city', ozetYukleniyor: 'Loading…', bag: 'Open article', kapat: 'Close',
+        gm: 'Show on Google Maps', gmPro: 'Available with PRO', fiyat: '/en/plans'
     } : {
         harita: 'Darphane haritası', yukleniyor: 'Harita yükleniyor…', hata: 'Harita şu anda yüklenemiyor.',
-        darphane: 'Darphane', kent: 'Antik kent', ozetYukleniyor: 'Yükleniyor…', bag: 'Makaleyi aç', kapat: 'Kapat'
+        darphane: 'Darphane', kent: 'Antik kent', ozetYukleniyor: 'Yükleniyor…', bag: 'Makaleyi aç', kapat: 'Kapat',
+        gm: 'Google Haritalar\'da göster', gmPro: 'PRO üyelikle', fiyat: '/tr/abonelikler'
     };
     // [EN ad, TR ad, enlem, boylam, bölge sayfası kısa adı (sikke adresindeki)]
     var BOLGELER = [
@@ -160,6 +169,25 @@ $veri = (string) json_encode(
         return;
     }
     yer.textContent = T.yukleniyor;
+
+    // "Google Haritalar'da göster": PRO'da darphane koordinatı, ücretsizde PRO rozetiyle fiyat sayfası (uygulamayla aynı kural)
+    var GM = document.getElementById('nmh-gm');
+    if (GM && GM.parentNode) {
+        GM.textContent = T.gm;
+        if (GM.getAttribute('data-pro') === '1') {
+            GM.setAttribute('href', 'https://www.google.com/maps/search/?api=1&query=' + nokta.lat + ',' + nokta.lng);
+            GM.setAttribute('target', '_blank');
+            GM.setAttribute('rel', 'noopener');
+        } else {
+            GM.setAttribute('href', T.fiyat);
+            GM.setAttribute('title', T.gmPro);
+            var rozet = document.createElement('span');
+            rozet.className = 'nmh-pro';
+            rozet.textContent = 'PRO';
+            GM.appendChild(rozet);
+        }
+        GM.parentNode.hidden = false;
+    }
 
     function hata() { yer.textContent = T.hata; yer.style.display = ''; }
     window.gm_authFailure = window.gm_authFailure || hata;

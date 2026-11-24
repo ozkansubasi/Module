@@ -25,6 +25,32 @@ namespace Joomla\CMS\Log {
     }
 }
 
+namespace Joomla\CMS {
+    class Factory
+    {
+        public static $kim = null;
+
+        public static function getApplication()
+        {
+            return new class {
+                public function getIdentity() { return \Joomla\CMS\Factory::$kim; }
+            };
+        }
+    }
+}
+
+namespace Joomla\CMS\Component {
+    class ComponentHelper
+    {
+        public static function getParams($ad)
+        {
+            return new class {
+                public function get($k, $v = null) { return $k === 'pro_group_id' ? 10 : $v; }
+            };
+        }
+    }
+}
+
 namespace {
     define('_JEXEC', 1);
 
@@ -135,6 +161,30 @@ namespace {
     check('tür geçersiz → çıktı yok', bas(array('harita' => '../x', 'api_key' => 'K')) === '');
     check('eksik ayar günlüğe yazılır', count(Joomla\CMS\Log\Log::$kayitlar) === 2);
     check('varsayılan tür sikke', strpos(bas(array('api_key' => 'K')), 'single-mint-map') !== false);
+
+    // ---- 1.2.0 H1: "Google Haritalar'da göster" PRO bilgisi sunucudan
+    $kisi = function ($misafir, array $gruplar) {
+        return new class ($misafir, $gruplar) {
+            public $guest;
+            private $g;
+            public function __construct($m, $g) { $this->guest = $m; $this->g = $g; }
+            public function getAuthorisedGroups() { return $this->g; }
+        };
+    };
+    $gm = function ($c) { return preg_match('/<p class="nmh-gm-satir" hidden><a id="nmh-gm" class="nmh-gm" data-pro="([01])"><\/a><\/p>/', $c, $m) ? $m[1] : null; };
+    Joomla\CMS\Factory::$kim = null;
+    check('gm: kimlik yok → data-pro 0', $gm(bas(array('harita' => 'sikke', 'api_key' => 'K'))) === '0');
+    Joomla\CMS\Factory::$kim = $kisi(true, array(1, 9));
+    check('gm: misafir → data-pro 0', $gm(bas(array('harita' => 'sikke', 'api_key' => 'K'))) === '0');
+    Joomla\CMS\Factory::$kim = $kisi(false, array(1, 2));
+    check('gm: kayıtlı ücretsiz → data-pro 0', $gm(bas(array('harita' => 'sikke', 'api_key' => 'K'))) === '0');
+    Joomla\CMS\Factory::$kim = $kisi(false, array(1, 2, '10'));
+    check('gm: Pro grubu 10 → data-pro 1', $gm(bas(array('harita' => 'sikke', 'api_key' => 'K'))) === '1');
+    Joomla\CMS\Factory::$kim = $kisi(true, array(10));
+    check('gm: misafir ama grup 10 → yine 0', $gm(bas(array('harita' => 'sikke', 'api_key' => 'K'))) === '0');
+    Joomla\CMS\Factory::$kim = $kisi(false, array(10));
+    check('gm: Antik Harita sayfasında düğme yok', strpos(bas(array('harita' => 'anadolu', 'api_key' => 'K')), 'nmh-gm') === false);
+    Joomla\CMS\Factory::$kim = null;
 
     echo "\n{$gecti} passed, {$kaldi} failed\n";
     exit($kaldi ? 1 : 0);

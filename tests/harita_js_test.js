@@ -47,8 +47,10 @@ function el(tag) {
   return e;
 }
 
-function sayfa({ lang = 'tr', yol = '/tr/anatolian-coins/aeolis-coins/1-x', satirlar = {}, gozcu = false, google = true, genislik, fetch } = {}) {
+function sayfa({ lang = 'tr', yol = '/tr/anatolian-coins/aeolis-coins/1-x', satirlar = {}, gozcu = false, google = true, genislik, fetch, gm } = {}) {
   const kap = el('div');
+  let gmA = null;
+  if (gm !== undefined) { const p = el('p'); p.hidden = true; gmA = el('a'); gmA.setAttribute('data-pro', gm); p.appendChild(gmA); }
   if (genislik) { kap.offsetWidth = genislik; }
   kap.setAttribute('data-key', 'TEST key&1');
   const yer = el('div');
@@ -92,7 +94,7 @@ function sayfa({ lang = 'tr', yol = '/tr/anatolian-coins/aeolis-coins/1-x', sati
   }
   window.document = {
     documentElement: { lang },
-    getElementById: id => (id === 'single-mint-map' ? kap : null),
+    getElementById: id => (id === 'single-mint-map' ? kap : (id === 'nmh-gm' ? gmA : null)),
     querySelectorAll: s => (s === '.el-title' ? basliklar : []),
     createElement: el,
     head: { appendChild: s => eklenen.push(s) },
@@ -100,12 +102,31 @@ function sayfa({ lang = 'tr', yol = '/tr/anatolian-coins/aeolis-coins/1-x', sati
   };
   window.window = window;
   vm.runInNewContext(SCRIPT, window);
-  return { kap, yer, eklenen, kayit, window };
+  return { kap, yer, eklenen, kayit, window, gmA };
 }
 const bekle = () => new Promise(r => setImmediate(r));
 const yakin = (a, b) => Math.abs(a - b) < 1e-6;
 
 (async () => {
+  // 0) 1.2.0 H1: "Google Haritalar'da göster"
+  {
+    const satirlar = { 'Darphane': 'sardes', 'Darphane Koordinatları': '38.4875,28.0393' };
+    let g = sayfa({ satirlar, gm: '1' });
+    check('gm PRO: Google Haritalar koordinatla', g.gmA.getAttribute('href') === 'https://www.google.com/maps/search/?api=1&query=38.4875,28.0393', g.gmA.getAttribute('href'));
+    check('gm PRO: yeni sekme + noopener', g.gmA.getAttribute('target') === '_blank' && g.gmA.getAttribute('rel') === 'noopener');
+    check('gm PRO: TR metin, satır görünür', g.gmA.textContent === "Google Haritalar'da göster" && g.gmA.parentNode.hidden === false);
+    check('gm PRO: rozet yok', g.gmA.children.length === 0);
+    g = sayfa({ satirlar: { 'Darphane': 'attaea', 'Darphane Koordinatları': '28.1159270,39.5159770' }, gm: '1' });
+    check('gm PRO: ters koordinat düzeltilmiş hâliyle', g.gmA.getAttribute('href').endsWith('query=39.515977,28.115927'), g.gmA.getAttribute('href'));
+    g = sayfa({ satirlar, gm: '0' });
+    check('gm ücretsiz: fiyat sayfası (TR)', g.gmA.getAttribute('href') === '/tr/abonelikler' && !g.gmA.getAttribute('target'));
+    check('gm ücretsiz: PRO rozeti', g.gmA.children.length === 1 && g.gmA.children[0].textContent === 'PRO' && g.gmA.children[0].className === 'nmh-pro');
+    g = sayfa({ lang: 'en-gb', satirlar: { 'Mint': 'sardes', 'Mint Coordinates': '38.4875,28.0393' }, gm: '0' });
+    check('gm ücretsiz EN: /en/plans + EN metin', g.gmA.getAttribute('href') === '/en/plans' && g.gmA.textContent === 'Show on Google Maps');
+    g = sayfa({ satirlar: { 'Darphane': 'sardes' }, gm: '1' });
+    check('gm: koordinat yoksa satır gizli kalır', g.gmA.parentNode.hidden === true && !g.gmA.getAttribute('href'));
+  }
+
   // 1) 14983: koordinat ters yazılmış (boylam,enlem) → düzeltilir; anahtar biçimli ad okunur hâle gelir
   let s = sayfa({ satirlar: { 'Darphane': 'attaea', 'Darphane Koordinatları': '28.1159270,39.5159770' } });
   await bekle();

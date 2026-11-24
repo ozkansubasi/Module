@@ -24,4 +24,19 @@ if (!in_array($harita, array('anadolu', 'sikke'), true) || $anahtar === '') {
     return;
 }
 
+// 1.2.0: sikke düzenindeki "Google Haritalar'da göster" PRO oturumda koordinatı açar (galeri modülüyle aynı kural:
+// misafir değil + com_numistr pro_group_id oturumun grupları arasında). Joomla'sız sınamada Factory yoksa false.
+$proMu = false;
+
+if ($harita === 'sikke') {
+    try {
+        $kim     = \Joomla\CMS\Factory::getApplication()->getIdentity();
+        $proGrup = (int) \Joomla\CMS\Component\ComponentHelper::getParams('com_numistr')->get('pro_group_id', 10);
+        $proMu   = $kim && !$kim->guest && $proGrup > 0
+            && in_array($proGrup, array_map('intval', (array) $kim->getAuthorisedGroups()), true);
+    } catch (\Throwable $e) {
+        $proMu = false;
+    }
+}
+
 require ModuleHelper::getLayoutPath('mod_numistr_harita', $harita);
