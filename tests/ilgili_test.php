@@ -104,5 +104,29 @@ check('gruplar: dönem', count($g2['donem']) === 1 && $g2['donem'][0]['alias'] =
 check('gruplar: yer korunur', $g2['yer'] === array('sardes') && $g2['hukumdar'] === array());
 check('sayfaTuru: yalnız bölge/dönem etiketi yazı yapmaz', $H::sayfaTuru(array(), array($lid, $ark)) === '');
 
+// --- 1.3.0: video bloğu
+check('sureYaz 52', $H::sureYaz(52) === '0:52');
+check('sureYaz 125', $H::sureYaz(125) === '2:05');
+check('sureYaz boş', $H::sureYaz(null) === '' && $H::sureYaz(0) === '');
+check('gizlilik TR/EN', $H::gizlilikUrl('tr-TR') === '/tr/kvkk-ve-gizlilik-politikasi' && $H::gizlilikUrl('en-GB') === '/en/privacy-policy-gdpr');
+$vs = array('youtube_id' => 'dQw4w9WgXcQ', 'bicim' => 'shorts', 'baslik' => ' Zela ', 'aciklama' => 'Üç sözcük',
+    'kunye' => 'Berlin · Brahms', 'sure_sn' => 52, 'kucuk_resim' => 'images/videolar/dQw4w9WgXcQ.jpg', 'yayin_tarihi' => '2026-11-27 16:30:00');
+$vo = $H::videoOgesi($vs, 'https://www.numistr.org/');
+check('video öğesi: resim tam adres', $vo['resim'] === 'https://www.numistr.org/images/videolar/dQw4w9WgXcQ.jpg');
+check('video öğesi: shorts izleme adresi', $vo['izle'] === 'https://www.youtube.com/shorts/dQw4w9WgXcQ');
+check('video öğesi: başlık kırpılır, süre', $vo['baslik'] === 'Zela' && $vo['sure'] === '0:52' && $vo['sure_sn'] === 52);
+$vv = $H::videoOgesi(array('bicim' => 'video') + $vs, 'https://x');
+check('video öğesi: 16:9 izleme adresi', $vv['bicim'] === 'video' && $vv['izle'] === 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+check('video öğesi: bilinmeyen biçim → shorts', $H::videoOgesi(array('bicim' => 'x') + $vs, '')['bicim'] === 'shorts');
+check('video öğesi: geçersiz kimlik → null', $H::videoOgesi(array('youtube_id' => 'abc"><x') + $vs, '') === null);
+check('video öğesi: dış resim yolu reddedilir', $H::videoOgesi(array('kucuk_resim' => 'https://evil/x.jpg') + $vs, 'https://x')['resim'] === ''
+    && $H::videoOgesi(array('kucuk_resim' => 'images/videolar/../../configuration.php') + $vs, 'https://x')['resim'] === '');
+$ld = $H::videoJsonLd($vo);
+check('JSON-LD alanları', $ld['@type'] === 'VideoObject' && $ld['uploadDate'] === '2026-11-27T16:30:00+00:00'
+    && $ld['duration'] === 'PT52S' && $ld['embedUrl'] === 'https://www.youtube.com/embed/dQw4w9WgXcQ' && $ld['description'] === 'Üç sözcük');
+check('JSON-LD: tarih yoksa null', $H::videoJsonLd(array('tarih' => '') + $vo) === null);
+check('JSON-LD: resim yoksa null', $H::videoJsonLd(array('resim' => '') + $vo) === null);
+check('JSON-LD: açıklama yoksa başlık', $H::videoJsonLd(array('aciklama' => '') + $vo)['description'] === 'Zela');
+
 echo "\n{$gecti} passed, {$kaldi} failed\n";
 exit($kaldi ? 1 : 0);

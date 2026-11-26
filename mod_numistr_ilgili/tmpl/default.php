@@ -8,6 +8,7 @@
  *   hukumdar (hükümdar + sikke sayısı) |
  *   kart     (aynı serinin yazıları: giriş görselli kart; görsel yoksa seri adıyla yer tutucu) |
  *   cta      (uygulama kartı: fotoğrafla tanıma) |
+ *   video    (1.3.0: YouTube; tıklayana dek YouTube'a istek yok — küçük resim sitede, oynatıcı tıklayınca nocookie) |
  *   ust      (bolum=ust: seri rozeti, tarih, okuma süresi, dönem; bölge / yer / hükümdar çipleri; başlığın üstünde).
  */
 
@@ -80,6 +81,48 @@ endif;
                             </div>
                         </a>
                     </div>
+                <?php endforeach; ?>
+            </div>
+
+        <?php elseif ($blok['tur'] === 'video') : ?>
+            <div class="nmi-video-liste">
+                <?php foreach ($blok['ogeler'] as $o) :
+                    $ad = $o['baslik'] !== '' ? $o['baslik'] : 'YouTube';
+                    $ld = ModNumistrIlgiliHelper::videoJsonLd($o);
+                    ?>
+                    <figure class="nmi-video nmi-video-<?php echo $h($o['bicim']); ?>">
+                        <div class="nmi-video-cerceve">
+                            <button type="button" class="nmi-video-oynat" data-nmi-yt="<?php echo $h($o['yt']); ?>" data-nmi-baslik="<?php echo $h($ad); ?>"
+                                    aria-label="<?php echo $h(Text::sprintf('MOD_NUMISTR_ILGILI_VIDEO_OYNAT', $ad)); ?>">
+                                <?php if ($o['resim'] !== '') : ?>
+                                    <img src="<?php echo $h($o['resim']); ?>" alt="" loading="lazy" decoding="async">
+                                <?php else : ?>
+                                    <span class="nmi-video-yer"><?php echo $h($ad); ?></span>
+                                <?php endif; ?>
+                                <span class="nmi-video-simge" aria-hidden="true"><svg viewBox="0 0 64 64" width="64" height="64" focusable="false"><circle cx="32" cy="32" r="31" fill="rgba(43,36,24,.82)" stroke="#fff" stroke-width="2"/><path d="M26 20 46 32 26 44Z" fill="#fff"/></svg></span>
+                                <?php if ($o['sure'] !== '') : ?>
+                                    <span class="nmi-video-sure"><?php echo $h($o['sure']); ?></span>
+                                <?php endif; ?>
+                            </button>
+                        </div>
+                        <figcaption class="nmi-video-alt">
+                            <?php if ($o['baslik'] !== '') : ?>
+                                <span class="nmi-video-baslik"><?php echo $h($o['baslik']); ?></span>
+                            <?php endif; ?>
+                            <span class="nmi-video-not"><?php echo $h(Text::_('MOD_NUMISTR_ILGILI_VIDEO_NOT')); ?>
+                                <a href="<?php echo $h(ModNumistrIlgiliHelper::gizlilikUrl($dil)); ?>"><?php echo $h(Text::_('MOD_NUMISTR_ILGILI_VIDEO_GIZLILIK')); ?></a></span>
+                            <a class="nmi-video-izle" href="<?php echo $h($o['izle']); ?>" target="_blank" rel="noopener"><?php echo $h(Text::_('MOD_NUMISTR_ILGILI_VIDEO_IZLE')); ?> ↗</a>
+                            <?php if ($o['kunye'] !== '') : ?>
+                                <details class="nmi-video-kunye">
+                                    <summary><?php echo $h(Text::_('MOD_NUMISTR_ILGILI_VIDEO_KUNYE')); ?></summary>
+                                    <p><?php echo $h($o['kunye']); ?></p>
+                                </details>
+                            <?php endif; ?>
+                        </figcaption>
+                    </figure>
+                    <?php if ($ld) : ?>
+                        <script type="application/ld+json"><?php echo json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP); ?></script>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </div>
 

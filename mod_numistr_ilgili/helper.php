@@ -48,6 +48,10 @@ class ModNumistrIlgiliHelper
     /** Okuma süresi için dakikadaki kelime. */
     const OKUMA_HIZI = 200;
 
+    /** Sayfa başına en çok video (numistr_videolar; 1.3.0, BACKLOG 12b V1). */
+    const VIDEO_SINIRI = 2;
+    const VIDEO_TABLO  = 'numistr_videolar';
+
     // ------------------------------------------------------------------ saf mantık (DB'siz test edilir)
 
     /** authority-name / ad → etiket alias'ı: küçük harf, Türkçe harfler sade, harf-rakam dışı → tire. */
@@ -238,6 +242,75 @@ class ModNumistrIlgiliHelper
             . '?utm_source=numistr&utm_medium=blog&utm_campaign=blog-cta&utm_content=' . (int) $makaleId;
     }
 
+    /** Gizlilik politikası (videonun altındaki not; plg_system_numistrconsent varsayılanlarıyla aynı). */
+    public static function gizlilikUrl($dil)
+    {
+        return $dil === 'en-GB' ? '/en/privacy-policy-gdpr' : '/tr/kvkk-ve-gizlilik-politikasi';
+    }
+
+    /** 52 → "0:52", 125 → "2:05"; boş / sıfır → ''. */
+    public static function sureYaz($sn)
+    {
+        $sn = (int) $sn;
+
+        return $sn > 0 ? intdiv($sn, 60) . ':' . str_pad((string) ($sn % 60), 2, '0', STR_PAD_LEFT) : '';
+    }
+
+    /**
+     * numistr_videolar satırı → şablon öğesi. $kok: site kökü adresi (sonunda / yok), küçük resim tam adresi için.
+     * Geçersiz YouTube kimliği → null (şablona hiç gitmez).
+     */
+    public static function videoOgesi(array $r, $kok)
+    {
+        $yt = (string) ($r['youtube_id'] ?? '');
+
+        if (!preg_match('/^[A-Za-z0-9_-]{11}$/', $yt)) {
+            return null;
+        }
+
+        $bicim = ($r['bicim'] ?? '') === 'video' ? 'video' : 'shorts';
+        $resim = (string) ($r['kucuk_resim'] ?? '');
+        $resim = preg_match('~^images/videolar/[A-Za-z0-9_-]{11}\.jpg$~', $resim) ? rtrim((string) $kok, '/') . '/' . $resim : '';
+        $sure  = (int) ($r['sure_sn'] ?? 0);
+
+        return array(
+            'yt'       => $yt,
+            'bicim'    => $bicim,
+            'baslik'   => trim((string) ($r['baslik'] ?? '')),
+            'aciklama' => trim((string) ($r['aciklama'] ?? '')),
+            'kunye'    => trim((string) ($r['kunye'] ?? '')),
+            'resim'    => $resim,
+            'sure_sn'  => $sure > 0 ? $sure : 0,
+            'sure'     => self::sureYaz($sure),
+            'tarih'    => (string) ($r['yayin_tarihi'] ?? ''),
+            'izle'     => $bicim === 'shorts' ? 'https://www.youtube.com/shorts/' . $yt : 'https://www.youtube.com/watch?v=' . $yt,
+        );
+    }
+
+    /** schema.org VideoObject (Google video sonuçları). Yükleme tarihi ya da küçük resim yoksa null: ikisi de zorunlu alan. */
+    public static function videoJsonLd(array $o)
+    {
+        if (empty($o['resim']) || empty($o['tarih']) || !preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $o['tarih'])) {
+            return null;
+        }
+
+        $j = array(
+            '@context'     => 'https://schema.org',
+            '@type'        => 'VideoObject',
+            'name'         => $o['baslik'] !== '' ? $o['baslik'] : 'NumisTR',
+            'description'  => $o['aciklama'] !== '' ? $o['aciklama'] : ($o['baslik'] !== '' ? $o['baslik'] : 'NumisTR'),
+            'thumbnailUrl' => array($o['resim']),
+            'uploadDate'   => str_replace(' ', 'T', $o['tarih']) . '+00:00',
+            'embedUrl'     => 'https://www.youtube.com/embed/' . $o['yt'],
+        );
+
+        if (!empty($o['sure_sn'])) {
+            $j['duration'] = 'PT' . (int) $o['sure_sn'] . 'S';
+        }
+
+        return $j;
+    }
+
     /** Görseli olan sikkeler önde, sıra korunarak en çok $limit tane. */
     public static function gorselliOnde(array $satirlar, $limit)
     {
@@ -366,6 +439,36 @@ class ModNumistrIlgiliHelper
         $r = (int) $db->loadResult();
 
         return $r > 0 ? $r : (int) $id;
+    }
+
+    /**
+     * Sayfanın videoları (numistr_videolar; video_esitle.php doldurur). Tablo yoksa ya da okunamazsa boş dizi:
+     * sayfa hiçbir zaman düşmez. Önce 16:9 video, sonra en yeni.
+     */
+    public static function videolar($id, $dil)
+    {
+        $id   = (int) $id;
+        $kisa = $dil === 'en-GB' ? 'en' : 'tr';
+
+        try {
+            $db = self::db();
+            $q  = $db->getQuery(true)
+                ->select($db->quoteName(array('youtube_id', 'bicim', 'baslik', 'aciklama', 'kunye', 'sure_sn', 'kucuk_resim', 'yayin_tarihi')))
+                ->from($db->quoteName(self::VIDEO_TABLO))
+                ->where($db->quoteName('makale_id') . ' = :id')
+                ->where($db->quoteName('dil') . ' = :dil')
+                ->bind(':id', $id, ParameterType::INTEGER)
+                ->bind(':dil', $kisa, ParameterType::STRING)
+                ->order($db->quoteName('bicim') . ' = ' . $db->quote('video') . ' DESC, ' . $db->quoteName('yayin_tarihi') . ' DESC');
+            $db->setQuery($q, 0, self::VIDEO_SINIRI);
+            $satirlar = (array) $db->loadAssocList();
+        } catch (\Throwable $e) {
+            return array();
+        }
+
+        $kok = rtrim(Uri::root(), '/');
+
+        return array_values(array_filter(array_map(function ($r) use ($kok) { return self::videoOgesi($r, $kok); }, $satirlar)));
     }
 
     /** Yayındaki makaleler (bağlantı için): [['id','baslik','url'], ...] — kimlik sırası korunur. */
@@ -758,6 +861,9 @@ class ModNumistrIlgiliHelper
 
             return array('tur' => 'yazi', 'blog' => true, 'bloklar' => array($ust));
         }
+
+        // Video (1.3.0): sayfa türünden bağımsız, alt bölümün ilk bloğu (Pazarlama Merkezi ilgili_sayfa eşlemesi).
+        $bloklar[] = self::blok('video', 'MOD_NUMISTR_ILGILI_VIDEO', '', self::videolar($id, $dil));
 
         if ($tur === 'yerlesim') {
             $trId        = $dil === 'tr-TR' ? $id : self::karsilik($id, 'tr-TR');

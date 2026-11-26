@@ -65,4 +65,13 @@ if (!empty($veri['blog'])) {
     HTMLHelper::_('stylesheet', 'mod_numistr_ilgili/ilgili.css', array('version' => $surum ? (string) $surum : 'auto', 'relative' => true));
 }
 
+// Video bloğu (1.3.0): biçem + oynatma betiği yalnız video olan sayfada; sürüm dosya zamanı (Cloudflare, yukarıdaki not).
+if (in_array('video', array_column($veri['bloklar'], 'tur'), true)) {
+    foreach (array('css/video.css' => 'stylesheet', 'js/video.js' => 'script') as $dosya => $tur) {
+        $surum = @filemtime(JPATH_ROOT . '/media/mod_numistr_ilgili/' . $dosya);
+        HTMLHelper::_($tur, 'mod_numistr_ilgili/' . basename($dosya), array('version' => $surum ? (string) $surum : 'auto', 'relative' => true),
+            $tur === 'script' ? array('defer' => true) : array());
+    }
+}
+
 require ModuleHelper::getLayoutPath('mod_numistr_ilgili', $params->get('layout', 'default'));
