@@ -128,5 +128,67 @@ check('JSON-LD: tarih yoksa null', $H::videoJsonLd(array('tarih' => '') + $vo) =
 check('JSON-LD: resim yoksa null', $H::videoJsonLd(array('resim' => '') + $vo) === null);
 check('JSON-LD: açıklama yoksa başlık', $H::videoJsonLd(array('aciklama' => '') + $vo)['description'] === 'Zela');
 
+// --- 1.4.0: sikke sayfası yazı seçimi (dönem süzgeci + sıra; örneklem 2026-11-28)
+check('dönem: Sardes MÖ 323–319 → helenistik', $H::sikkeDonemleri('-0323', '-0319') === array('helenistik'));
+check('dönem: İskender MÖ 328–323 → yalnız helenistik', $H::sikkeDonemleri('-0328', '-0323') === array('helenistik'));
+check('dönem: Tarsos MÖ 400–380 → klasik', $H::sikkeDonemleri('-0400', '-0380') === array('klasik'));
+check('dönem: Phokaia MÖ 600–522 → arkaik', $H::sikkeDonemleri('-0600', '-0522') === array('arkaik'));
+check('dönem: MÖ 88–30 → helenistik + roma', $H::sikkeDonemleri('-0088', '-0030') === array('helenistik', 'roma'));
+check('dönem: MS 337–340 → roma', $H::sikkeDonemleri('0337', '0340') === array('roma'));
+check('dönem: MS 600 → bizans', $H::sikkeDonemleri('0600', '') === array('bizans'));
+check('dönem: MÖ 480 sınırı → klasik', $H::sikkeDonemleri('-0480', '-0480') === array('klasik'));
+check('dönem: ters aralık düzeltilir', $H::sikkeDonemleri('-0200', '-0250') === array('helenistik'));
+check('dönem: başlangıç yok / sayı değil → boş', $H::sikkeDonemleri('', '-0300') === array() && $H::sikkeDonemleri('abc', '') === array());
+check('dönem uyar: kesişim', $H::donemUyar(array('helenistik', 'roma'), array('roma')));
+check('dönem uyar: kesişmez', !$H::donemUyar(array('helenistik'), array('arkaik')));
+check('dönem uyar: dönemsiz yazı / dönemsiz sikke', $H::donemUyar(array(), array('arkaik')) && $H::donemUyar(array('roma'), array()));
+check('bölge özeti: AEOLİS', $H::bolgeOzeti(array('baslik' => 'AEOLİS', 'catid' => 36, 'donem' => array(), 'yer_sayisi' => 8)));
+check('bölge özeti: karışık harfli başlık değil', !$H::bolgeOzeti(array('baslik' => 'Kyzikos, Orkinos', 'catid' => 36, 'donem' => array(), 'yer_sayisi' => 8)));
+check('bölge özeti: sikkeler kategorisi değil', !$H::bolgeOzeti(array('baslik' => 'AEOLİS', 'catid' => 39, 'donem' => array(), 'yer_sayisi' => 8)));
+check('bölge özeti: dönem etiketli değil', !$H::bolgeOzeti(array('baslik' => 'LİDYA', 'catid' => 36, 'donem' => array('arkaik'), 'yer_sayisi' => 3)));
+check('bölge özeti: az yer etiketi değil', !$H::bolgeOzeti(array('baslik' => 'LİDYA', 'catid' => 36, 'donem' => array(), 'yer_sayisi' => 1)));
+
+$y = function ($id, $eslesme, $donem, $catid, $etiket, $tarih, $baslik = 'Yazı', $yer = 1) {
+    return array('id' => $id, 'eslesme' => $eslesme, 'donem' => $donem, 'catid' => $catid, 'etiket_sayisi' => $etiket,
+        'publish_up' => $tarih, 'baslik' => $baslik, 'yer_sayisi' => $yer);
+};
+$ids = function (array $l) { return array_column($l, 'id'); };
+
+// Phokaia elektrumu (arkaik): helenistik Seleukos yazıları elenir, hekte yazısı öne, bölge özeti sona
+$phokaia = array(
+    $y(34044, 'darphane', array('helenistik'), 39, 6, '2026-10-31 07:05:00'),
+    $y(34032, 'darphane', array('helenistik'), 39, 12, '2026-10-17 07:05:00'),
+    $y(30676, 'darphane', array(), 36, 9, '2025-12-03 07:05:00', 'İYONYA', 9),
+    $y(34030, 'darphane', array('arkaik'), 39, 4, '2026-09-25 07:05:00'),
+    $y(13042, 'darphane', array('arkaik'), 39, 1, '2025-10-22 07:05:00'),
+    $y(12996, 'darphane', array('arkaik'), 36, 2, '2025-10-21 07:05:00'),
+);
+check('sıra: Phokaia', $ids($H::sikkeYazilariniSirala($phokaia, array('arkaik'), 6)) === array(13042, 34030, 12996, 30676),
+    json_encode($ids($H::sikkeYazilariniSirala($phokaia, array('arkaik'), 6))));
+
+// Lampsakos İskender tetradrahmisi (MÖ 328–323): ikisi › hükümdar; klasik satrap ve arkaik Lampsakos elenir; dönemsiz anlatı dönemlilerden sonra
+$iskender = array(
+    $y(34101, 'hukumdar', array(), 40, 2, '2026-11-22 07:05:00'),
+    $y(34073, 'darphane', array('arkaik'), 39, 1, '2026-11-13 07:05:00'),
+    $y(34033, 'ikisi', array('klasik'), 39, 18, '2026-10-17 07:05:00'),
+    $y(34036, 'ikisi', array('helenistik'), 39, 6, '2026-10-17 07:05:00'),
+    $y(13038, 'hukumdar', array('helenistik'), 39, 1, '2025-10-22 07:05:00'),
+    $y(13030, 'hukumdar', array('helenistik'), 35, 1, '2025-10-22 07:05:00'),
+    $y(12980, 'hukumdar', array('helenistik'), 40, 1, '2025-10-21 07:05:00'),
+);
+$sd = $H::sikkeDonemleri('-0328', '-0323');
+check('sıra: İskender', $ids($H::sikkeYazilariniSirala($iskender, $sd, 6)) === array(34036, 13038, 13030, 12980, 34101),
+    json_encode($ids($H::sikkeYazilariniSirala($iskender, $sd, 6))));
+check('sıra: sınır 3', $ids($H::sikkeYazilariniSirala($iskender, $sd, 3)) === array(34036, 13038, 13030));
+
+// Dönemi bilinmeyen sikke: süzgeç yok; eşleşme ve kategori sırası; aynı sınıfta yeni önce
+$tarihsiz = array(
+    $y(1, 'darphane', array('roma'), 39, 2, '2026-01-01 00:00:00'),
+    $y(2, 'darphane', array('arkaik'), 39, 2, '2026-06-01 00:00:00'),
+    $y(3, 'hukumdar', array('klasik'), 40, 5, '2025-01-01 00:00:00'),
+);
+check('sıra: dönemsiz sikke', $ids($H::sikkeYazilariniSirala($tarihsiz, array(), 6)) === array(3, 2, 1));
+check('sıra: boş liste', $H::sikkeYazilariniSirala(array(), array('roma'), 6) === array());
+
 echo "\n{$gecti} passed, {$kaldi} failed\n";
 exit($kaldi ? 1 : 0);

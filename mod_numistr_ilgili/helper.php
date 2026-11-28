@@ -32,6 +32,8 @@ class ModNumistrIlgiliHelper
     const ALAN_HUKUMDAR = 'authority-name';
     const ALAN_YERLESIM = 'loc-id';
     const ALAN_SIKKE_KIMLIK = 'coin-id';
+    const ALAN_BASLANGIC = 'start-date';
+    const ALAN_BITIS     = 'end-date';
 
     const UST_YER      = 'yerler';
     const UST_HUKUMDAR = 'hukumdarlar';
@@ -51,6 +53,25 @@ class ModNumistrIlgiliHelper
     /** Sayfa başına en çok video (numistr_videolar; 1.3.0, BACKLOG 12b V1). */
     const VIDEO_SINIRI = 2;
     const VIDEO_TABLO  = 'numistr_videolar';
+
+    /**
+     * Sikke sayfasında yazı seçimi (1.4.0, 28 Kas 2026). Örneklem ve benzetim: claudedocs/web/ilgili-yazi-orneklem-2026-11-28.md.
+     * Dönem aralıkları yıl olarak (MÖ eksi), [alt, üst). Helenistik sikke MÖ 336'dan (İskender) başlar: blog İskender'i
+     * helenistik etiketliyor; MÖ 323 sınırında İskender sikkeleri klasiği de tutup satrap yazılarını geri getiriyordu.
+     */
+    const DONEM_ARALIKLARI = array(
+        'arkaik'     => array(-10000, -480),
+        'klasik'     => array(-480, -336),
+        'helenistik' => array(-336, -31),
+        'roma'       => array(-31, 491),
+        'bizans'     => array(491, 10000),
+    );
+
+    /** Blog kategorisi → sıra önceliği (küçük önce): sikkeler › semboller / numizmatik › atlas / tarihsel anlatı › diğer. */
+    const KATEGORI_ONCELIGI = array(39 => 0, 111 => 0, 35 => 1, 107 => 1, 37 => 1, 109 => 1, 36 => 2, 108 => 2, 40 => 2, 112 => 2);
+
+    /** Anadolu Atlası (TR / EN): bölge özet yazıları (AEOLİS, İYONYA …) burada. */
+    const ATLAS_KATEGORILERI = array(36, 108);
 
     // ------------------------------------------------------------------ saf mantık (DB'siz test edilir)
 
@@ -320,6 +341,98 @@ class ModNumistrIlgiliHelper
         return array_slice(array_merge($var, $yok), 0, (int) $limit);
     }
 
+    /**
+     * Sikkenin start-date / end-date aralığının kesiştiği dönemler ('arkaik', 'klasik' …; etiket alias'ı 'donem-' öneksiz).
+     * Başlangıç yoksa ya da sayı değilse boş dizi: süzgeç uygulanmaz. Değerler "-0323" biçiminde gelir.
+     */
+    public static function sikkeDonemleri($bas, $son)
+    {
+        $bas = trim((string) $bas);
+        $son = trim((string) $son);
+
+        if ($bas === '' || !is_numeric($bas)) {
+            return array();
+        }
+
+        $b = (int) $bas;
+        $e = ($son !== '' && is_numeric($son)) ? (int) $son : $b;
+
+        if ($e < $b) {
+            list($b, $e) = array($e, $b);
+        }
+
+        $donemler = array();
+
+        foreach (self::DONEM_ARALIKLARI as $donem => $aralik) {
+            if ($b < $aralik[1] && $e >= $aralik[0]) {
+                $donemler[] = $donem;
+            }
+        }
+
+        return $donemler;
+    }
+
+    /** Yazı sikkenin dönemini tutuyor mu? Dönem etiketi olmayan yazı ya da dönemi bilinmeyen sikke: evet. */
+    public static function donemUyar(array $yaziDonemleri, array $sikkeDonemleri)
+    {
+        return !$yaziDonemleri || !$sikkeDonemleri || (bool) array_intersect($yaziDonemleri, $sikkeDonemleri);
+    }
+
+    /** Bölge özet yazısı (AEOLİS, İYONYA …): atlas kategorisinde, dönemsiz, en az 3 yer etiketi, başlık tümüyle büyük harf. */
+    public static function bolgeOzeti(array $y)
+    {
+        $t = trim((string) ($y['baslik'] ?? ''));
+
+        return in_array((int) ($y['catid'] ?? 0), self::ATLAS_KATEGORILERI, true)
+            && empty($y['donem'])
+            && (int) ($y['yer_sayisi'] ?? 0) >= 3
+            && $t !== ''
+            && mb_strtoupper($t, 'UTF-8') === $t;
+    }
+
+    /**
+     * Sikke sayfasının ilgili yazıları: sikkenin dönemini tutmayan yazı elenir, kalanlar sıralanır.
+     * Sıra:
+     *   1. bölge özeti en sonda;
+     *   2. eşleşme: ikisi › hükümdar › darphane;
+     *   3. dönemi doğrulanmış yazı dönemsiz yazıdan önce;
+     *   4. kategori önceliği;
+     *   5. az yer + hükümdar etiketli (odaklı) yazı önce;
+     *   6. yeni yazı önce.
+     *
+     * @param   array  $yazilar  [['id','baslik','catid','publish_up','eslesme' => ikisi|hukumdar|darphane,'donem' => [..],
+     *                           'yer_sayisi','etiket_sayisi', …], …]
+     *
+     * @return  array  aynı satırlar, en çok $limit tane
+     */
+    public static function sikkeYazilariniSirala(array $yazilar, array $sikkeDonemleri, $limit)
+    {
+        $sinif = array('ikisi' => 0, 'hukumdar' => 1, 'darphane' => 2);
+        $aday  = array();
+
+        foreach ($yazilar as $y) {
+            $donem = array_values((array) ($y['donem'] ?? array()));
+
+            if (!self::donemUyar($donem, $sikkeDonemleri)) {
+                continue;
+            }
+
+            $aday[] = array(array(
+                self::bolgeOzeti($y) ? 1 : 0,
+                $sinif[$y['eslesme'] ?? ''] ?? 2,
+                ($donem && $sikkeDonemleri) ? 0 : 1,
+                self::KATEGORI_ONCELIGI[(int) ($y['catid'] ?? 0)] ?? 3,
+                (int) ($y['etiket_sayisi'] ?? 0),
+                -(int) strtotime((string) ($y['publish_up'] ?? '')),
+                (int) ($y['id'] ?? 0),
+            ), $y);
+        }
+
+        usort($aday, function ($a, $b) { return $a[0] <=> $b[0]; });
+
+        return array_map(function ($a) { return $a[1]; }, array_slice($aday, 0, max(0, (int) $limit)));
+    }
+
     // ------------------------------------------------------------------ veritabanı
 
     private static function db()
@@ -342,7 +455,7 @@ class ModNumistrIlgiliHelper
             ->from($db->quoteName('#__fields'))
             ->where($db->quoteName('context') . ' = ' . $db->quote('com_content.article'))
             ->whereIn($db->quoteName('name'), array(self::ALAN_DARPHANE, self::ALAN_HUKUMDAR, self::ALAN_YERLESIM,
-                self::ALAN_SIKKE_KIMLIK), ParameterType::STRING);
+                self::ALAN_SIKKE_KIMLIK, self::ALAN_BASLANGIC, self::ALAN_BITIS), ParameterType::STRING);
         $db->setQuery($q);
         $k = array();
 
@@ -612,6 +725,92 @@ class ModNumistrIlgiliHelper
         $db->setQuery($q);
 
         return array_map(array(__CLASS__, 'satir'), (array) $db->loadObjectList());
+    }
+
+    /**
+     * Sikke sayfasının ilgili yazıları (1.4.0): darphanenin yer etiketi ya da hükümdarın etiketi.
+     * Adayları getirir, dönem / etiket sayılarını ekler; süzme ve sıralama sikkeYazilariniSirala'da.
+     *
+     * @return  array  [['id','baslik','url'], ...]
+     */
+    public static function sikkeYazilari($darphane, $hukumdar, array $sikkeDonemleri, $dil, $haric, $limit)
+    {
+        $yer = self::yerEtiketi($darphane);
+        $huk = trim((string) $hukumdar) !== '' ? self::sade($hukumdar) : '';
+        $db  = self::db();
+
+        $kosul = array('(' . $db->quoteName('p.alias') . ' = ' . $db->quote(self::UST_YER) . ' AND ' . $db->quoteName('t.alias')
+            . ' = ' . $db->quote($yer) . ')');
+
+        if ($huk !== '') {
+            $kosul[] = '(' . $db->quoteName('p.alias') . ' = ' . $db->quote(self::UST_HUKUMDAR) . ' AND ' . $db->quoteName('t.alias')
+                . ' = ' . $db->quote($huk) . ')';
+        }
+
+        $q = self::yayinda($db, $db->getQuery(true)
+            ->select(array_merge($db->quoteName(array('c.id', 'c.title', 'c.alias', 'c.catid', 'c.language', 'c.publish_up')),
+                array($db->quoteName('p.alias', 'ust'))))
+            ->from($db->quoteName('#__contentitem_tag_map', 'm'))
+            ->join('INNER', $db->quoteName('#__tags', 't') . ' ON ' . $db->quoteName('t.id') . ' = ' . $db->quoteName('m.tag_id'))
+            ->join('INNER', $db->quoteName('#__tags', 'p') . ' ON ' . $db->quoteName('p.id') . ' = ' . $db->quoteName('t.parent_id'))
+            ->join('INNER', $db->quoteName('#__content', 'c') . ' ON ' . $db->quoteName('c.id') . ' = ' . $db->quoteName('m.content_item_id'))
+            ->where($db->quoteName('m.type_alias') . ' = ' . $db->quote('com_content.article'))
+            ->where($db->quoteName('t.published') . ' = 1')
+            ->where('(' . implode(' OR ', $kosul) . ')')
+            ->whereIn($db->quoteName('c.language'), array($dil, '*'), ParameterType::STRING)
+            ->where($db->quoteName('c.id') . ' <> ' . (int) $haric)
+            ->setLimit(300));
+        $db->setQuery($q);
+        $yazilar = array();
+
+        foreach ((array) $db->loadObjectList() as $r) {
+            $id = (int) $r->id;
+
+            if (!isset($yazilar[$id])) {
+                $yazilar[$id] = array('id' => $id, 'baslik' => (string) $r->title, 'alias' => (string) $r->alias,
+                    'catid' => (int) $r->catid, 'language' => (string) $r->language, 'publish_up' => (string) $r->publish_up,
+                    'yer' => false, 'huk' => false, 'donem' => array(), 'yer_sayisi' => 0, 'etiket_sayisi' => 0);
+            }
+
+            $yazilar[$id][$r->ust === self::UST_YER ? 'yer' : 'huk'] = true;
+        }
+
+        if (!$yazilar) {
+            return array();
+        }
+
+        // Adayların dönem etiketleri ve yer + hükümdar etiketi sayısı (odak ölçüsü)
+        $q = $db->getQuery(true)
+            ->select(array($db->quoteName('m.content_item_id', 'id'), $db->quoteName('t.alias', 'alias'), $db->quoteName('p.alias', 'ust')))
+            ->from($db->quoteName('#__contentitem_tag_map', 'm'))
+            ->join('INNER', $db->quoteName('#__tags', 't') . ' ON ' . $db->quoteName('t.id') . ' = ' . $db->quoteName('m.tag_id'))
+            ->join('INNER', $db->quoteName('#__tags', 'p') . ' ON ' . $db->quoteName('p.id') . ' = ' . $db->quoteName('t.parent_id'))
+            ->where($db->quoteName('m.type_alias') . ' = ' . $db->quote('com_content.article'))
+            ->where($db->quoteName('t.published') . ' = 1')
+            ->where($db->quoteName('m.content_item_id') . ' IN (' . implode(',', array_keys($yazilar)) . ')')
+            ->whereIn($db->quoteName('p.alias'), array(self::UST_YER, self::UST_HUKUMDAR, self::UST_DONEM), ParameterType::STRING);
+        $db->setQuery($q);
+
+        foreach ((array) $db->loadObjectList() as $r) {
+            $id = (int) $r->id;
+
+            if ($r->ust === self::UST_DONEM) {
+                $yazilar[$id]['donem'][] = preg_replace('/^donem-/', '', (string) $r->alias);
+            } else {
+                $yazilar[$id]['etiket_sayisi']++;
+                $yazilar[$id]['yer_sayisi'] += $r->ust === self::UST_YER ? 1 : 0;
+            }
+        }
+
+        foreach ($yazilar as &$y) {
+            $y['eslesme'] = $y['yer'] && $y['huk'] ? 'ikisi' : ($y['huk'] ? 'hukumdar' : 'darphane');
+        }
+        unset($y);
+
+        return array_map(function ($y) {
+            return self::satir((object) array('id' => $y['id'], 'title' => $y['baslik'], 'alias' => $y['alias'],
+                'catid' => $y['catid'], 'language' => $y['language']));
+        }, self::sikkeYazilariniSirala(array_values($yazilar), $sikkeDonemleri, $limit));
     }
 
     /** Sade biçimi (etiket alias'ı) verilen hükümdarların authority-name değerleri. */
@@ -890,8 +1089,10 @@ class ModNumistrIlgiliHelper
                     self::sikkeler(self::ALAN_HUKUMDAR, array($hukumdar), $dil, $id, $limit));
             }
 
+            // 1.4.0: dönem süzgeci + yeni sıra (önce yalnız yayın tarihine göre ilk 6 idi)
             $bloklar[] = self::blok('liste', 'MOD_NUMISTR_ILGILI_YAZILAR', '',
-                self::yazilar(array(self::yerEtiketi($darphane)), $hukumdar !== '' ? array(self::sade($hukumdar)) : array(), $dil, $id, 6));
+                self::sikkeYazilari($darphane, $hukumdar,
+                    self::sikkeDonemleri($alanlar[self::ALAN_BASLANGIC] ?? '', $alanlar[self::ALAN_BITIS] ?? ''), $dil, $id, 6));
         } elseif ($tur === 'yazi') {
             if ($blog) {
                 $seri    = self::seriYazilari($ozet['catid'], $dil, $id, max(1, (int) ($secenek['seri_limit'] ?? 4)));
