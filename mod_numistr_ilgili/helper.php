@@ -372,6 +372,48 @@ class ModNumistrIlgiliHelper
         return $donemler;
     }
 
+    /**
+     * Sikke sayfasında yazı aramak için hükümdar (1.4.1). authority-name doluysa odur.
+     * Boşsa ve sikke Price kataloğunun düz numaralı bir tipiyse (ör. "Price 1689", "Price 2889A"), İskender adına basılmış
+     * ölüm sonrası bir tiptir: yazı eşleşmesi için 'Alexander III of Macedon' döner.
+     * Veri yazılmaz: bu sikkelerin hükümdar alanı bilerek boş (PELLA'da ölüm sonrası basımların kişisel hükümdarı yok).
+     * P numaraları (III. Philippos) zaten dolu.
+     */
+    public static function yaziHukumdari($baslik, $hukumdar)
+    {
+        $hukumdar = trim((string) $hukumdar);
+
+        if ($hukumdar !== '') {
+            return $hukumdar;
+        }
+
+        return preg_match('/^Price\s+\d+[A-Za-z]?$/', trim((string) $baslik)) ? 'Alexander III of Macedon' : '';
+    }
+
+    /**
+     * Yazının yer etiketleri: [alias => ['ad' => etiket başlığı, 'darphane' => darphane anahtarı]] (1.4.1).
+     * Anahtar önce etiket notundan ("darphane: soli-pompeiopolis"), yoksa darphaneAnahtari() ile.
+     * Not, eşleme tablosunda olmayan tireli anahtarları (soli-pompeiopolis) doğru çözer.
+     */
+    public static function yerEtiketBilgisi(array $etiketler, ?array $bilinen = null)
+    {
+        $b = array();
+
+        foreach ($etiketler as $e) {
+            $a = (string) ($e['alias'] ?? '');
+
+            if (($e['ust'] ?? '') !== self::UST_YER || $a === '' || isset($b[$a])) {
+                continue;
+            }
+
+            $d     = preg_match('/darphane:\s*([a-z0-9_-]+)/i', (string) ($e['not'] ?? ''), $m) ? strtolower($m[1]) : '';
+            $b[$a] = array('ad' => trim((string) ($e['ad'] ?? '')) !== '' ? trim((string) $e['ad']) : $a,
+                'darphane' => $d !== '' ? $d : self::darphaneAnahtari($a, $bilinen));
+        }
+
+        return $b;
+    }
+
     /** Yazı sikkenin dönemini tutuyor mu? Dönem etiketi olmayan yazı ya da dönemi bilinmeyen sikke: evet. */
     public static function donemUyar(array $yaziDonemleri, array $sikkeDonemleri)
     {
@@ -464,6 +506,18 @@ class ModNumistrIlgiliHelper
         }
 
         return $k;
+    }
+
+    /** Makalenin başlığı (1.4.1: Price tipi tanıma için). */
+    public static function makaleBasligi($id)
+    {
+        $db = self::db();
+        $db->setQuery($db->getQuery(true)
+            ->select($db->quoteName('title'))
+            ->from($db->quoteName('#__content'))
+            ->where($db->quoteName('id') . ' = ' . (int) $id));
+
+        return (string) $db->loadResult();
     }
 
     /** Makalenin ilgili alan değerleri: [alan adı => değer]. */
@@ -1002,11 +1056,14 @@ class ModNumistrIlgiliHelper
                 'url' => $kat > 0 ? Route::_(RouteHelper::getCategoryRoute($kat, $dil)) : self::aramaUrl($dil, self::etiketAdi($e, $dil)));
         }
 
+        $yerBilgi = self::yerEtiketBilgisi($etiketler);
+
         foreach (array_slice($g['yer'], 0, self::CIP_SINIRI) as $alias) {
-            $yer      = self::yerlesimler(array(self::darphaneAnahtari($alias)), $dil);
+            $bilgi    = $yerBilgi[$alias] ?? array('ad' => $alias, 'darphane' => self::darphaneAnahtari($alias));
+            $yer      = self::yerlesimler(array($bilgi['darphane']), $dil);
             $cipler[] = $yer
                 ? array('tur' => 'yer', 'ad' => $yer[0]['baslik'], 'url' => $yer[0]['url'])
-                : array('tur' => 'yer', 'ad' => $alias, 'url' => self::aramaUrl($dil, $alias));
+                : array('tur' => 'yer', 'ad' => $bilgi['ad'], 'url' => self::aramaUrl($dil, $bilgi['ad']));
         }
 
         foreach (self::hukumdarAdlari(array_slice($g['hukumdar'], 0, self::CIP_SINIRI)) as $ad) {
@@ -1090,8 +1147,9 @@ class ModNumistrIlgiliHelper
             }
 
             // 1.4.0: dönem süzgeci + yeni sıra (önce yalnız yayın tarihine göre ilk 6 idi)
+            // 1.4.1: hükümdarı boş Price tipleri İskender yazılarıyla eşleşir (yaziHukumdari)
             $bloklar[] = self::blok('liste', 'MOD_NUMISTR_ILGILI_YAZILAR', '',
-                self::sikkeYazilari($darphane, $hukumdar,
+                self::sikkeYazilari($darphane, self::yaziHukumdari(self::makaleBasligi($id), $hukumdar),
                     self::sikkeDonemleri($alanlar[self::ALAN_BASLANGIC] ?? '', $alanlar[self::ALAN_BITIS] ?? ''), $dil, $id, 6));
         } elseif ($tur === 'yazi') {
             if ($blog) {
@@ -1120,12 +1178,13 @@ class ModNumistrIlgiliHelper
                     array_slice($konu, 0, max(1, (int) ($secenek['yazi_limit'] ?? 6))));
             }
 
-            $g = self::etiketGruplari($etiketler);
+            $g        = self::etiketGruplari($etiketler);
+            $yerBilgi = self::yerEtiketBilgisi($etiketler);
 
             foreach (array_slice($g['yer'], 0, self::ETIKET_SINIRI) as $alias) {
-                $darphane = self::darphaneAnahtari($alias);
+                $darphane = $yerBilgi[$alias]['darphane'] ?? self::darphaneAnahtari($alias);
                 $yer      = self::yerlesimler(array($darphane), $dil);
-                $ad       = $yer ? $yer[0]['baslik'] : $alias;
+                $ad       = $yer ? $yer[0]['baslik'] : ($yerBilgi[$alias]['ad'] ?? $alias);
                 $bloklar[] = self::blok('baglanti', 'MOD_NUMISTR_ILGILI_YERLESIM', $ad, $yer);
                 $bloklar[] = self::blok('sikke', 'MOD_NUMISTR_ILGILI_YERIN_SIKKELERI', $ad,
                     self::sikkeler(self::ALAN_DARPHANE, array($darphane), $dil, 0, min($limit, 4)));

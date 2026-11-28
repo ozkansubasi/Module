@@ -190,5 +190,22 @@ $tarihsiz = array(
 check('sıra: dönemsiz sikke', $ids($H::sikkeYazilariniSirala($tarihsiz, array(), 6)) === array(3, 2, 1));
 check('sıra: boş liste', $H::sikkeYazilariniSirala(array(), array('roma'), 6) === array());
 
+// --- 1.4.1: Price tipi yazı hükümdarı + yer etiketi notundan darphane anahtarı
+check('yazı hükümdarı: dolu alan korunur', $H::yaziHukumdari('Price 1353', 'Lysimachus') === 'Lysimachus');
+check('yazı hükümdarı: Price düz numara → İskender', $H::yaziHukumdari('Price 1689', '') === 'Alexander III of Macedon');
+check('yazı hükümdarı: Price harfli numara → İskender', $H::yaziHukumdari(' Price 2889A ', '') === 'Alexander III of Macedon');
+check('yazı hükümdarı: Price P numarası boşsa boş', $H::yaziHukumdari('Price P122', '') === '');
+check('yazı hükümdarı: başka katalog boş', $H::yaziHukumdari('CN Type 21332', '') === '' && $H::yaziHukumdari('Seleucid Coins 311', '') === '');
+$yb = $H::yerEtiketBilgisi(array(
+    array('alias' => 'soli-pompeiopolis', 'ust' => 'yerler', 'ad' => 'Soli/Pompeiopolis', 'not' => 'darphane: soli-pompeiopolis'),
+    array('alias' => 'magnesia-ad-maeandrum', 'ust' => 'yerler', 'ad' => 'Magnesia', 'not' => ''),
+    array('alias' => 'rhodes', 'ust' => 'yerler', 'ad' => '', 'not' => 'darphane: rhodes'),
+    array('alias' => 'augustus', 'ust' => 'hukumdarlar', 'ad' => 'Augustus', 'not' => ''),
+), array('magnesia_ad_maeandrum'));
+check('yer bilgisi: nottaki tireli anahtar', $yb['soli-pompeiopolis']['darphane'] === 'soli-pompeiopolis' && $yb['soli-pompeiopolis']['ad'] === 'Soli/Pompeiopolis');
+check('yer bilgisi: notsuz → darphaneAnahtari', $yb['magnesia-ad-maeandrum']['darphane'] === 'magnesia_ad_maeandrum');
+check('yer bilgisi: başlıksız → alias', $yb['rhodes']['ad'] === 'rhodes' && $yb['rhodes']['darphane'] === 'rhodes');
+check('yer bilgisi: hükümdar etiketi alınmaz', !isset($yb['augustus']) && count($yb) === 3);
+
 echo "\n{$gecti} passed, {$kaldi} failed\n";
 exit($kaldi ? 1 : 0);
